@@ -128,7 +128,7 @@ export default function FlashCardsPage() {
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Legal Flashcards</h1>
           <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-            Upload your legal materials and generate AI-powered flashcards to master key concepts, terms, and cases.
+            Upload your legal materials and generate flashcards to master key concepts, terms, and cases.
           </p>
         </div>
 

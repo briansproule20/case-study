@@ -18,34 +18,40 @@ import Link from 'next/link';
 export default function Home() {
   const features = [
     {
-      icon: FileText,
+      icon: FileSearch,
       title: 'Document Analysis',
-      description: 'Upload readings, case briefs, scans, and images—let AI process and organize your legal materials.',
+      description: 'Upload PDFs, Word docs, or images to summarize, extract key points, identify legal issues, or create case briefs.',
+      href: '/document-analysis',
+    },
+    {
+      icon: ClipboardList,
+      title: 'Practice Quizzes',
+      description: 'Generate custom multiple-choice quizzes from your study materials with instant feedback and explanations.',
+      href: '/quizzes',
+    },
+    {
+      icon: Layers,
+      title: 'Flashcards',
+      description: 'Upload legal materials to automatically generate flashcards covering terms, case law, and key concepts.',
+      href: '/flash-cards',
+    },
+    {
+      icon: Library,
+      title: 'Case Library',
+      description: 'Search millions of legal cases from Court Listener with advanced filtering by court, date, and legal area.',
+      href: '/case-library',
+    },
+    {
+      icon: Target,
+      title: 'Issue Spotting',
+      description: 'Practice analyzing fact patterns with an interactive coach that helps you identify legal issues and build IRAC analyses.',
+      href: '/issue-spotting',
     },
     {
       icon: Brain,
-      title: 'Practice Quizzes',
-      description: 'Test your knowledge with AI-generated quizzes tailored to your study materials.',
-    },
-    {
-      icon: BookOpen,
-      title: 'Digital Flashcards',
-      description: 'Master case law with intelligent flashcards that adapt to your learning pace.',
-    },
-    {
-      icon: GraduationCap,
-      title: 'Case Study Repository',
-      description: 'Build a comprehensive library of legal cases and class materials in one place.',
-    },
-    {
-      icon: Search,
-      title: 'Issue Spotting',
-      description: 'Practice with hypothetical test questions designed to sharpen your analytical skills.',
-    },
-    {
-      icon: Lightbulb,
-      title: 'Smart Study Tools',
-      description: 'Memorization aids and study techniques powered by AI to maximize retention.',
+      title: 'Legal Chat',
+      description: 'Chat with Claude about legal concepts, get help with assignments, or analyze uploaded documents and images.',
+      href: '/chat',
     },
   ];
 
@@ -138,18 +144,17 @@ export default function Home() {
             {features.map((feature) => {
               const Icon = feature.icon;
               return (
-                <div
-                  key={feature.title}
-                  className="group relative rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md"
-                >
-                  <div className="mb-3 inline-flex size-10 items-center justify-center rounded-lg bg-primary/10">
-                    <Icon className="size-5 text-primary" />
+                <Link key={feature.title} href={feature.href}>
+                  <div className="group relative rounded-lg border bg-background p-6 shadow-sm transition-all hover:shadow-md hover:border-primary/50 cursor-pointer h-full">
+                    <div className="mb-3 inline-flex size-10 items-center justify-center rounded-lg bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                      <Icon className="size-5 text-primary" />
+                    </div>
+                    <h3 className="mb-2 font-semibold text-lg group-hover:text-primary transition-colors">{feature.title}</h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">
+                      {feature.description}
+                    </p>
                   </div>
-                  <h3 className="mb-2 font-semibold text-lg">{feature.title}</h3>
-                  <p className="text-muted-foreground text-sm">
-                    {feature.description}
-                  </p>
-                </div>
+                </Link>
               );
             })}
           </div>
