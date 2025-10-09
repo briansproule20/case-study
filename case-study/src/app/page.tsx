@@ -63,7 +63,7 @@ export default function Home() {
               {' '}Law School{' '}
             </span>
             and 
-            <span className="bg-gradient-to-r from-green-500 to-green-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-secondary to-secondary/80 bg-clip-text text-transparent">
               {' '}Legal Study{' '}
             </span>
             Companion
