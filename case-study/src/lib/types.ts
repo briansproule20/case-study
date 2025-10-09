@@ -4,7 +4,7 @@ export type Subject = 'Torts' | 'Contracts' | 'Crim' | 'ConLaw' | 'Property' | '
 
 export interface SessionConfig {
   subjects: Subject[];
-  level: '1L' | 'Bar' | 'Advanced';
+  level: '1L' | '2L' | '3L' | 'Bar' | 'Advanced';
   focus: string; // "Emphasize negligence defenses, ignore damages calculation."
 }
 
