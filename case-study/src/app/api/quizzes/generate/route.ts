@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { openai } from '@ai-sdk/openai';
+import { openai, anthropic } from '@/echo';
 import { generateObject } from 'ai';
 import { processFile } from '@/lib/document-processor';
+
+// Allow longer requests for quiz generation
+export const maxDuration = 60;
 
 interface QuizQuestion {
   id: number;
@@ -90,7 +93,7 @@ Format your response as a JSON object with this exact structure:
 Make sure the questions cover different aspects of the materials and test understanding rather than just memorization.`;
 
     const { object } = await generateObject({
-      model: openai('gpt-4o'),
+      model: anthropic('claude-3-7-sonnet-20250219'),
       schema: {
         type: 'object',
         properties: {
