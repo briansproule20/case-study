@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { openai, anthropic } from '@/echo';
+import { openai } from '@/echo';
 import { generateObject } from 'ai';
 import { processFile } from '@/lib/document-processor';
 
@@ -93,7 +93,7 @@ Format your response as a JSON object with this exact structure:
 Make sure the questions cover different aspects of the materials and test understanding rather than just memorization.`;
 
     const { object } = await generateObject({
-      model: anthropic('claude-3-7-sonnet-20250219'),
+      model: openai('gpt-4o'),
       schema: {
         type: 'object',
         properties: {
