@@ -70,11 +70,27 @@ export interface CourtListenerCluster {
   citation_id: number;
 }
 
+// Search results have a different format than cluster detail endpoints
+export interface CourtListenerSearchResult {
+  cluster_id: number;
+  caseName: string;
+  caseNameFull: string;
+  citation: string[];
+  neutralCite: string;
+  court: string;
+  dateFiled: string;
+  status: string;
+  syllabus: string;
+  procedural_history: string;
+  opinions: Array<{ snippet: string }>;
+  absolute_url: string;
+}
+
 export interface CourtListenerSearchResponse {
   count: string | number;
   next: string | null;
   previous: string | null;
-  results: CourtListenerCluster[];
+  results: CourtListenerSearchResult[];
 }
 
 export interface CourtListenerDocket {

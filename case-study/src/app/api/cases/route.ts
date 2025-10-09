@@ -55,21 +55,21 @@ export async function GET(request: NextRequest) {
     // Transform the results to a simpler format
     const transformedResults = {
       cases: results.results
-        .filter(cluster => cluster.id) // Filter out any without IDs
-        .map((cluster) => ({
-          id: `cl-${cluster.id}`, // Use cluster ID
-          title: cluster.case_name || cluster.case_name_short || 'Untitled Case',
-          citation: cluster.case_name_short || 'No citation available',
-          court: 'Court Listener',
-          date: cluster.date_filed || cluster.date_created || new Date().toISOString(),
-          jurisdiction: cluster.precedential_status === 'Published' ? 'Federal' : 'State',
-          topics: [cluster.precedential_status].filter(Boolean),
-          summary: cluster.summary || cluster.syllabus || cluster.headnotes || 'Summary not available. Click "View Full Case" to read the complete decision.',
+        .filter(cluster => cluster.cluster_id) // Filter out any without cluster IDs
+        .map((cluster, index) => ({
+          id: `cl-${cluster.cluster_id}-${index}`, // Ensure unique ID using cluster_id and index
+          title: cluster.caseName || cluster.caseNameFull || 'Untitled Case',
+          citation: cluster.citation && cluster.citation.length > 0 ? cluster.citation[0] : cluster.neutralCite || 'No citation available',
+          court: cluster.court || 'Unknown Court',
+          date: cluster.dateFiled || new Date().toISOString(),
+          jurisdiction: cluster.status === 'Published' ? 'Federal' : 'State',
+          topics: [cluster.status].filter(Boolean),
+          summary: cluster.syllabus || cluster.procedural_history || (cluster.opinions && cluster.opinions[0] && cluster.opinions[0].snippet) || 'Summary not available. Click "View Full Case" to read the complete decision.',
           source: 'courtlistener' as const,
           url: `https://www.courtlistener.com${cluster.absolute_url}`,
-          fullTextAvailable: cluster.sub_opinions && cluster.sub_opinions.length > 0
+          fullTextAvailable: cluster.opinions && cluster.opinions.length > 0
         })),
-      total: typeof results.count === 'number' ? results.count : parseInt(results.count as string) || 0,
+      total: typeof results.count === 'number' ? results.count : 0,
       hasMore: !!results.next
     };
 
@@ -126,21 +126,21 @@ export async function POST(request: NextRequest) {
     // Transform the results to a simpler format
     const transformedResults = {
       cases: results.results
-        .filter(cluster => cluster.id) // Filter out any without IDs
-        .map((cluster) => ({
-          id: `cl-${cluster.id}`, // Use cluster ID
-          title: cluster.case_name || cluster.case_name_short || 'Untitled Case',
-          citation: cluster.case_name_short || 'No citation available',
-          court: 'Court Listener',
-          date: cluster.date_filed || cluster.date_created || new Date().toISOString(),
-          jurisdiction: cluster.precedential_status === 'Published' ? 'Federal' : 'State',
-          topics: [cluster.precedential_status].filter(Boolean),
-          summary: cluster.summary || cluster.syllabus || cluster.headnotes || 'Summary not available. Click "View Full Case" to read the complete decision.',
+        .filter(cluster => cluster.cluster_id) // Filter out any without cluster IDs
+        .map((cluster, index) => ({
+          id: `cl-${cluster.cluster_id}-${index}`, // Ensure unique ID using cluster_id and index
+          title: cluster.caseName || cluster.caseNameFull || 'Untitled Case',
+          citation: cluster.citation && cluster.citation.length > 0 ? cluster.citation[0] : cluster.neutralCite || 'No citation available',
+          court: cluster.court || 'Unknown Court',
+          date: cluster.dateFiled || new Date().toISOString(),
+          jurisdiction: cluster.status === 'Published' ? 'Federal' : 'State',
+          topics: [cluster.status].filter(Boolean),
+          summary: cluster.syllabus || cluster.procedural_history || (cluster.opinions && cluster.opinions[0] && cluster.opinions[0].snippet) || 'Summary not available. Click "View Full Case" to read the complete decision.',
           source: 'courtlistener' as const,
           url: `https://www.courtlistener.com${cluster.absolute_url}`,
-          fullTextAvailable: cluster.sub_opinions && cluster.sub_opinions.length > 0
+          fullTextAvailable: cluster.opinions && cluster.opinions.length > 0
         })),
-      total: typeof results.count === 'number' ? results.count : parseInt(results.count as string) || 0,
+      total: typeof results.count === 'number' ? results.count : 0,
       hasMore: !!results.next
     };
 
