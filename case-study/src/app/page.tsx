@@ -8,7 +8,8 @@ import {
   Library,
   Lightbulb,
   Search,
-  ClipboardList
+  ClipboardList,
+  Layers
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -71,7 +72,7 @@ export default function Home() {
             and master case law with AI-powered flashcards and issue spotting exercises.
           </p>
 
-          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
             <Link href="/chat">
               <Button size="lg" className="group gap-2">
                 Chat Now
@@ -88,6 +89,12 @@ export default function Home() {
               <Button size="lg" variant="outline" className="gap-2">
                 <ClipboardList className="size-4" />
                 Practice Quizzes
+              </Button>
+            </Link>
+            <Link href="/flash-cards" className="w-full sm:w-auto sm:basis-full sm:flex sm:justify-center">
+              <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto" style={{ borderColor: '#C8C9C7', color: '#C8C9C7' }}>
+                <Layers className="size-4" />
+                Flashcards
               </Button>
             </Link>
           </div>
