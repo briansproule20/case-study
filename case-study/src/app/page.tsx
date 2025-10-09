@@ -7,7 +7,8 @@ import {
   GraduationCap,
   Library,
   Lightbulb,
-  Search
+  Search,
+  ClipboardList
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -81,6 +82,12 @@ export default function Home() {
               <Button size="lg" variant="secondary" className="gap-2">
                 <Library className="size-4" />
                 Case Library
+              </Button>
+            </Link>
+            <Link href="/quizzes">
+              <Button size="lg" variant="outline" className="gap-2">
+                <ClipboardList className="size-4" />
+                Practice Quizzes
               </Button>
             </Link>
           </div>
