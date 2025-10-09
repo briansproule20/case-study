@@ -73,7 +73,7 @@ export default function Home() {
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link href="/chat">
               <Button size="lg" className="group gap-2">
-                Chat Now!
+                Chat Now
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
