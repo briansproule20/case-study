@@ -82,3 +82,36 @@ export async function processDocument(
 
   throw new Error(`Unsupported document type: ${file.mediaType}`);
 }
+
+// New method to handle File objects directly
+export async function processFile(file: File): Promise<string> {
+  console.log('Processing File object:', {
+    name: file.name,
+    type: file.type,
+    size: file.size
+  });
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (file.type === 'application/pdf') {
+    return await extractTextFromPDF(buffer);
+  } else if (
+    file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+    file.type === 'application/msword'
+  ) {
+    return await extractTextFromWord(buffer);
+  } else if (file.type.startsWith('text/')) {
+    // Handle text files
+    const text = new TextDecoder().decode(buffer);
+    return text;
+  } else if (file.type.startsWith('image/')) {
+    // For images, we'll just return a placeholder since OCR isn't implemented
+    // In a real implementation, you'd use an OCR service here
+    return `[Image: ${file.name}]`;
+  }
+
+  throw new Error(`Unsupported file type: ${file.type}`);
+}
+
+// Keep the old method for backward compatibility
+export { processDocument as processDocumentFromDataUrl };
