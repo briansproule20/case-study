@@ -10,7 +10,8 @@ import {
   Search,
   ClipboardList,
   Layers,
-  Target
+  Target,
+  FileSearch
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -73,38 +74,50 @@ export default function Home() {
             and master case law with AI-powered flashcards and issue spotting exercises.
           </p>
 
-          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
-            <Link href="/chat">
-              <Button size="lg" className="group gap-2">
-                Chat Now
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </Link>
-            <Link href="/case-library">
-              <Button size="lg" variant="secondary" className="gap-2">
-                <Library className="size-4" />
-                Case Library
-              </Button>
-            </Link>
-            <Link href="/quizzes">
-              <Button size="lg" variant="outline" className="gap-2">
-                <ClipboardList className="size-4" />
-                Practice Quizzes
-              </Button>
-            </Link>
-            <Link href="/flash-cards">
-              <Button size="lg" variant="outline" className="gap-2">
-                <Layers className="size-4" />
-                Flashcards
-              </Button>
-            </Link>
-            <Link href="/issue-spotting">
-              <Button size="lg" className="group gap-2">
-                <Target className="size-4" />
-                Issue Spotting
-                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-              </Button>
-            </Link>
+          <div className="flex flex-col items-center justify-center gap-3 sm:gap-4">
+            {/* First Row */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <Link href="/chat">
+                <Button size="lg" className="group gap-2">
+                  Chat Now
+                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </Link>
+              <Link href="/case-library">
+                <Button size="lg" variant="secondary" className="gap-2">
+                  <Library className="size-4" />
+                  Case Library
+                </Button>
+              </Link>
+              <Link href="/quizzes">
+                <Button size="lg" variant="outline" className="gap-2">
+                  <ClipboardList className="size-4" />
+                  Practice Quizzes
+                </Button>
+              </Link>
+            </div>
+            {/* Second Row */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <Link href="/flash-cards">
+                <Button size="lg" variant="outline" className="gap-2">
+                  <Layers className="size-4" />
+                  Flashcards
+                </Button>
+              </Link>
+              <Link href="/issue-spotting">
+                <Button size="lg" className="group gap-2">
+                  <Target className="size-4" />
+                  Issue Spotting
+                  <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </Link>
+              <Link href="/document-analysis">
+                <Button size="lg" variant="secondary" className="gap-2">
+                  <FileSearch className="size-4" />
+                  Document Analysis
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
