@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, BookOpen, Calendar, MapPin, Scale, Loader2, X, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Search, Filter, BookOpen, Calendar, MapPin, Scale, Loader2, X, ChevronDown, SlidersHorizontal, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -108,6 +109,7 @@ const legalAreas = [
 ];
 
 export default function CaseLibraryPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [selectedCourtLevel, setSelectedCourtLevel] = useState('all');
@@ -308,6 +310,40 @@ export default function CaseLibraryPage() {
 
   const handleSearch = () => {
     searchCases();
+  };
+
+  const handleExplainInChat = (caseItem: CaseSearchResponse['cases'][0]) => {
+    // Build the prompt for the chat
+    const prompt = `Please explain this legal case to me:
+
+**${caseItem.title}**
+
+**Citation:** ${caseItem.citation}
+
+**Court:** ${caseItem.court}
+
+**Date:** ${new Date(caseItem.date).toLocaleDateString()}
+
+**Jurisdiction:** ${caseItem.jurisdiction}
+
+**Topics:** ${caseItem.topics.join(', ')}
+
+**Case Summary:** ${caseItem.summary}
+
+**Source:** ${caseItem.source === 'courtlistener' ? 'Court Listener' : 'Harvard CAP'}
+
+---
+
+Can you provide a detailed explanation of this case, including:
+1. The key facts and background
+2. The legal issues and questions presented
+3. The court's holding and reasoning
+4. The significance and implications of this decision
+5. How this case might be applied in legal analysis`;
+
+    // Encode the prompt and navigate to chat
+    const encodedPrompt = encodeURIComponent(prompt);
+    router.push(`/chat?message=${encodedPrompt}`);
   };
 
   return (
@@ -568,10 +604,18 @@ export default function CaseLibraryPage() {
                           {caseItem.citation}
                         </CardDescription>
                       </div>
-                      <div className="flex gap-2 shrink-0">
+                      <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          onClick={() => handleExplainInChat(caseItem)}
+                          className="text-xs sm:text-sm gap-1.5"
+                        >
+                          <MessageSquare className="size-3.5" />
+                          Explain in Chat
+                        </Button>
                         {caseItem.url && (
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => window.open(caseItem.url, '_blank')}
                             className="text-xs sm:text-sm"

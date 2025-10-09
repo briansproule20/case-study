@@ -2,7 +2,8 @@
 
 import { useChat } from '@ai-sdk/react';
 import { CopyIcon, MessageSquare, Paperclip, X } from 'lucide-react';
-import { Fragment, useRef, useState } from 'react';
+import { Fragment, useRef, useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Action, Actions } from '@/components/ai-elements/actions';
 import {
   Conversation,
@@ -93,11 +94,36 @@ const suggestions = [
 ];
 
 const ChatBotDemo = () => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [files, setFiles] = useState<FileList | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const hasAutoSent = useRef(false);
   const { messages, sendMessage, status } = useChat();
+
+  // Check for message in URL params and auto-send it
+  useEffect(() => {
+    const messageParam = searchParams.get('message');
+    if (messageParam && messages.length === 0 && !hasAutoSent.current) {
+      hasAutoSent.current = true;
+      const decodedMessage = decodeURIComponent(messageParam);
+
+      // Send the message
+      sendMessage(
+        { text: decodedMessage },
+        {
+          body: {
+            model: model,
+          },
+        }
+      );
+
+      // Clear the URL parameter so refresh doesn't resend
+      router.replace('/chat');
+    }
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
