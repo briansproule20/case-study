@@ -92,7 +92,7 @@ export default function Home() {
               </Button>
             </Link>
             <Link href="/flash-cards" className="w-full sm:w-auto sm:basis-full sm:flex sm:justify-center">
-              <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto" style={{ borderColor: '#C8C9C7', backgroundColor: '#C8C9C7', color: 'black' }}>
+              <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto border-[#C8C9C7] text-[#C8C9C7] hover:bg-[#C8C9C7] hover:text-black">
                 <Layers className="size-4" />
                 Flashcards
               </Button>
