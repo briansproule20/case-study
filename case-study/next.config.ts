@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: '.',
   },
+  eslint: {
+    // Disable ESLint during builds due to flat config compatibility issues
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;

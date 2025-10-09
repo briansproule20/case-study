@@ -45,7 +45,7 @@ export async function GET(
       id: `cl-${cluster.id}`,
       title: cluster.case_name || cluster.case_name_short || 'Untitled Case',
       citation: cluster.case_name_short || cluster.case_name || 'No citation available',
-      court: cluster.court || 'Unknown Court',
+      court: 'Court Listener', // Court info is in docket, would require additional API call
       date: cluster.date_filed || cluster.date_created || new Date().toISOString(),
       jurisdiction: cluster.precedential_status === 'Published' ? 'Federal' : 'State',
       topics: [cluster.precedential_status].filter(Boolean),
