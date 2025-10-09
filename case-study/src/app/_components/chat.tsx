@@ -40,19 +40,55 @@ import { Suggestion, Suggestions } from '@/components/ai-elements/suggestion';
 
 const models = [
   {
-    name: 'GPT 4o',
+    name: 'Claude Sonnet 4',
+    value: 'claude-sonnet-4-20250514',
+  },
+  {
+    name: 'Claude Opus 4.1',
+    value: 'claude-opus-4-1-20250805',
+  },
+  {
+    name: 'Claude Opus 4',
+    value: 'claude-opus-4-20250514',
+  },
+  {
+    name: 'Claude 3.7 Sonnet',
+    value: 'claude-3-7-sonnet-20250219',
+  },
+  {
+    name: 'Claude 3.5 Sonnet',
+    value: 'claude-3-5-sonnet-20241022',
+  },
+  {
+    name: 'Claude 3.5 Haiku',
+    value: 'claude-3-5-haiku-20241022',
+  },
+  {
+    name: 'Claude 3 Opus',
+    value: 'claude-3-opus-20240229',
+  },
+  {
+    name: 'Claude 3 Haiku',
+    value: 'claude-3-haiku-20240307',
+  },
+  {
+    name: 'GPT-5',
+    value: 'gpt-5',
+  },
+  {
+    name: 'GPT-4o',
     value: 'gpt-4o',
   },
   {
-    name: 'GPT 5',
-    value: 'gpt-5',
+    name: 'GPT-4o Mini',
+    value: 'gpt-4o-mini',
   },
 ];
 
 const suggestions = [
-  'Can you explain how to play tennis?',
-  'Write me a code snippet of how to use the vercel ai sdk to create a chatbot',
-  'How do I make a really good fish taco?',
+  'Explain the concept of stare decisis in common law',
+  'What are the key elements of a valid contract?',
+  'Help me outline a legal memo on tort liability',
 ];
 
 const ChatBotDemo = () => {
