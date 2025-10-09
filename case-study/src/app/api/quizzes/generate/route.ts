@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { openai } from '@/echo';
-import { generateObject } from 'ai';
+import { openai, anthropic } from '@/echo';
+import { generateText } from 'ai';
 import { processFile } from '@/lib/document-processor';
 
 // Allow longer requests for quiz generation
@@ -62,8 +62,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate quiz using AI
-    const prompt = `
-You are a legal education expert tasked with creating a 10-question multiple choice quiz based on the provided legal materials.
+    const prompt = `You are a legal education expert tasked with creating a 10-question multiple choice quiz based on the provided legal materials.
 
 Materials:
 ${allText}
@@ -76,7 +75,7 @@ Create exactly 10 multiple choice questions. Each question should:
 3. Have exactly one correct answer
 4. Include a clear explanation of why the correct answer is right and why the others are wrong
 
-Format your response as a JSON object with this exact structure:
+You must respond with ONLY a valid JSON object in this exact format (no markdown, no code blocks, just raw JSON):
 {
   "questions": [
     {
@@ -85,46 +84,28 @@ Format your response as a JSON object with this exact structure:
       "options": ["Option A", "Option B", "Option C", "Option D"],
       "correctAnswer": 0,
       "explanation": "Explanation of why this is correct and why others are wrong."
-    },
-    // ... 9 more questions
+    }
   ]
 }
 
-Make sure the questions cover different aspects of the materials and test understanding rather than just memorization.`;
+Make sure to create exactly 10 questions that cover different aspects of the materials and test understanding rather than just memorization.`;
 
-    const { object } = await generateObject({
-      model: openai('gpt-4o'),
-      schema: {
-        type: 'object',
-        properties: {
-          questions: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                id: { type: 'number' },
-                question: { type: 'string' },
-                options: {
-                  type: 'array',
-                  items: { type: 'string' },
-                  minItems: 4,
-                  maxItems: 4
-                },
-                correctAnswer: { type: 'number', minimum: 0, maximum: 3 },
-                explanation: { type: 'string' }
-              },
-              required: ['id', 'question', 'options', 'correctAnswer', 'explanation']
-            },
-            minItems: 10,
-            maxItems: 10
-          }
-        },
-        required: ['questions']
-      },
+    const { text } = await generateText({
+      model: anthropic('claude-3-7-sonnet-20250219'),
       prompt
     });
 
-    const quiz: Quiz = object as Quiz;
+    // Parse the JSON response
+    let quiz: Quiz;
+    try {
+      // Remove markdown code blocks if present
+      const cleanedText = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      quiz = JSON.parse(cleanedText);
+    } catch (parseError) {
+      console.error('Failed to parse quiz JSON:', parseError);
+      console.error('Raw response:', text);
+      throw new Error('Failed to parse quiz response from AI');
+    }
 
     return NextResponse.json(quiz);
   } catch (error) {
