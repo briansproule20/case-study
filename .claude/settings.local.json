@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx echo-start:*)",
+      "Bash(cp:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "WebFetch(domain:docs.echo.dev)",
+      "WebFetch(domain:sdk.vercel.ai)",
+      "WebFetch(domain:ai-sdk.dev)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "WebFetch(domain:echo.merit.systems)",
+      "Bash(npm uninstall:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

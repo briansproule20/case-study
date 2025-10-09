@@ -8,7 +8,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Menu, Home, MessageSquare } from 'lucide-react';
+import { Menu, Home, MessageSquare, BookOpen, HelpCircle, Layers, Target } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -25,6 +25,26 @@ export function MobileNav() {
       title: 'Chat',
       href: '/chat',
       icon: MessageSquare,
+    },
+    {
+      title: 'Case Library',
+      href: '/case-library',
+      icon: BookOpen,
+    },
+    {
+      title: 'Quizzes',
+      href: '/quizzes',
+      icon: HelpCircle,
+    },
+    {
+      title: 'Flash Cards',
+      href: '/flash-cards',
+      icon: Layers,
+    },
+    {
+      title: 'Issue Spotting',
+      href: '/issue-spotting',
+      icon: Target,
     },
   ];
 
