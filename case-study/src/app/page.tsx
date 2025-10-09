@@ -62,7 +62,11 @@ export default function Home() {
             <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               {' '}Law School{' '}
             </span>
-            and Legal Study Companion
+            and 
+            <span className="bg-gradient-to-r from-green-500 to-green-600 bg-clip-text text-transparent">
+              {' '}Legal Study{' '}
+            </span>
+            Companion
           </h1>
 
           <p className="mx-auto mb-10 max-w-2xl text-balance text-lg text-muted-foreground sm:text-xl">
