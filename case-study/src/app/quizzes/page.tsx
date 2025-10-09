@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { prepareFilesForUpload } from '@/lib/upload-helper';
 
 interface Quiz {
   questions: Array<{
@@ -70,10 +71,8 @@ export default function QuizzesPage() {
     setError(null);
 
     try {
-      const formData = new FormData();
-      Array.from(files).forEach((file, index) => {
-        formData.append(`file-${index}`, file);
-      });
+      // Prepare files for upload (handles blob storage automatically for large files)
+      const formData = await prepareFilesForUpload(files);
       formData.append('instructions', instructions);
 
       const response = await fetch('/api/quizzes/generate', {

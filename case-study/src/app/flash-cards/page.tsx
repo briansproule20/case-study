@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { prepareFilesForUpload } from '@/lib/upload-helper';
 
 interface Flashcard {
   id: number;
@@ -70,10 +71,8 @@ export default function FlashCardsPage() {
     setError(null);
 
     try {
-      const formData = new FormData();
-      Array.from(files).forEach((file, index) => {
-        formData.append(`file-${index}`, file);
-      });
+      // Prepare files for upload (handles blob storage automatically for large files)
+      const formData = await prepareFilesForUpload(files);
       formData.append('instructions', instructions);
 
       const response = await fetch('/api/flashcards/generate', {

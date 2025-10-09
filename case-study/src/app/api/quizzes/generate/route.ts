@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { openai, anthropic } from '@/echo';
 import { generateText } from 'ai';
 import { processFile } from '@/lib/document-processor';
+import { extractFilesFromFormData } from '@/lib/upload-helper';
 
 // Allow longer requests for quiz generation
 export const maxDuration = 60;
+
+// Increase body size limit for direct uploads (up to 4MB)
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '4mb',
+    },
+  },
+};
 
 interface QuizQuestion {
   id: number;
@@ -23,16 +33,8 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const instructions = formData.get('instructions') as string || '';
 
-    // Collect all uploaded files
-    const files: File[] = [];
-    let index = 0;
-    while (formData.has(`file-${index}`)) {
-      const file = formData.get(`file-${index}`) as File;
-      if (file) {
-        files.push(file);
-      }
-      index++;
-    }
+    // Collect all uploaded files (handles both direct and blob uploads)
+    const files = await extractFilesFromFormData(formData);
 
     if (files.length === 0) {
       return NextResponse.json(

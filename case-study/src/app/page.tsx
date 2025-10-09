@@ -9,7 +9,8 @@ import {
   Lightbulb,
   Search,
   ClipboardList,
-  Layers
+  Layers,
+  Target
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -91,10 +92,17 @@ export default function Home() {
                 Practice Quizzes
               </Button>
             </Link>
-            <Link href="/flash-cards" className="w-full sm:w-auto sm:basis-full sm:flex sm:justify-center">
-              <Button size="lg" variant="outline" className="gap-2 w-full sm:w-auto">
+            <Link href="/flash-cards">
+              <Button size="lg" variant="outline" className="gap-2">
                 <Layers className="size-4" />
                 Flashcards
+              </Button>
+            </Link>
+            <Link href="/issue-spotting">
+              <Button size="lg" className="group gap-2">
+                <Target className="size-4" />
+                Issue Spotting
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
           </div>

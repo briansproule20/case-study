@@ -1,28 +1,474 @@
-export default function IssueSpottingPage() {
-  return (
-    <div className="mx-auto flex h-full max-w-4xl flex-col p-6">
-      <div className="flex h-full min-h-0 flex-col">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold tracking-tight">Issue Spotting</h1>
-          <p className="text-muted-foreground mt-2">
-            Practice identifying legal issues in hypothetical scenarios and case studies.
-          </p>
-        </div>
+'use client';
 
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-muted">
-              <svg className="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-            </div>
-            <h3 className="text-lg font-semibold">Coming Soon</h3>
-            <p className="text-muted-foreground mt-2 max-w-sm">
-              Issue spotting exercises and scenario-based legal analysis tools are in development. Train your legal reasoning skills.
-            </p>
-          </div>
-        </div>
+import { useState, useRef } from 'react';
+import { Paperclip, Send, FileText, BookOpen, Target, Loader2, X, ChevronDown, ChevronRight, Download } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
+import { prepareFilesForUpload } from '@/lib/upload-helper';
+import type { FactPattern, SessionConfig, LLMMessage, IssueNode, EvaluationReport } from '@/lib/types';
+import { EvalModal } from '@/app/issue-spotting/components/EvalModal';
+import { IssueTree } from '@/app/issue-spotting/components/IssueTree';
+
+const SUBJECTS = ['Torts', 'Contracts', 'Crim', 'ConLaw', 'Property', 'CivPro'] as const;
+const LEVELS = ['1L', 'Bar', 'Advanced'] as const;
+
+const SAMPLE_FACT_PATTERN = `Alice speeds through a red light while texting and hits Bob, who is jaywalking outside a bar at night. Bob had been drinking. The city's traffic camera was malfunctioning. Bob suffers a broken leg; his employer fires him for missing work.`;
+
+export default function IssueSpottingPage() {
+  // State
+  const [factPattern, setFactPattern] = useState<FactPattern | null>(null);
+  const [pastedText, setPastedText] = useState('');
+  const [config, setConfig] = useState<SessionConfig>({
+    subjects: ['Torts'],
+    level: '1L',
+    focus: ''
+  });
+  const [messages, setMessages] = useState<Array<LLMMessage & { id: string }>>([]);
+  const [currentMessage, setCurrentMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [issueMap, setIssueMap] = useState<IssueNode[] | null>(null);
+  const [showEvalModal, setShowEvalModal] = useState(false);
+  const [sessionStarted, setSessionStarted] = useState(false);
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Handle file upload
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoading(true);
+    try {
+      // Prepare file for upload (handles blob storage automatically for large files)
+      const formData = await prepareFilesForUpload([file]);
+
+      const response = await fetch('/api/extract-text', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) throw new Error('Failed to extract text');
+
+      const { text, filename } = await response.json();
+      setFactPattern({
+        sourceType: 'upload',
+        text,
+        filename
+      });
+      setPastedText(''); // Clear pasted text
+    } catch (error) {
+      console.error('File upload error:', error);
+      alert('Failed to extract text from file');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle paste
+  const handleUsePastedText = () => {
+    if (!pastedText.trim()) return;
+    setFactPattern({
+      sourceType: 'paste',
+      text: pastedText
+    });
+  };
+
+  // Load sample
+  const handleLoadSample = () => {
+    setPastedText(SAMPLE_FACT_PATTERN);
+    setFactPattern({
+      sourceType: 'paste',
+      text: SAMPLE_FACT_PATTERN
+    });
+  };
+
+  // Start session
+  const handleStartSession = async () => {
+    if (!factPattern) {
+      alert('Please upload or paste a fact pattern first');
+      return;
+    }
+
+    setSessionStarted(true);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          factPattern,
+          config,
+          history: []
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to start session');
+
+      const { replyMarkdown, issueMap: newIssueMap } = await response.json();
+      
+      const assistantMsg: LLMMessage & { id: string } = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: replyMarkdown
+      };
+      
+      setMessages([assistantMsg]);
+      if (newIssueMap) setIssueMap(newIssueMap);
+      
+      // Scroll to bottom
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch (error) {
+      console.error('Start session error:', error);
+      alert('Failed to start coaching session');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Send message
+  const handleSendMessage = async () => {
+    if (!currentMessage.trim() || !factPattern || isLoading) return;
+
+    const userMsg: LLMMessage & { id: string } = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: currentMessage
+    };
+
+    setMessages(prev => [...prev, userMsg]);
+    setCurrentMessage('');
+    setIsLoading(true);
+
+    try {
+      const history = messages.map(({ role, content }) => ({ role, content }));
+      history.push({ role: userMsg.role, content: userMsg.content });
+
+      const response = await fetch('/api/coach', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          factPattern,
+          config,
+          history
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to send message');
+
+      const { replyMarkdown, issueMap: newIssueMap } = await response.json();
+      
+      const assistantMsg: LLMMessage & { id: string } = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: replyMarkdown
+      };
+      
+      setMessages(prev => [...prev, assistantMsg]);
+      if (newIssueMap) setIssueMap(newIssueMap);
+      
+      // Scroll to bottom
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+    } catch (error) {
+      console.error('Send message error:', error);
+      alert('Failed to send message');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Export functions
+  const handleExportChat = () => {
+    const chatText = messages.map(m => `${m.role.toUpperCase()}:\n${m.content}\n`).join('\n---\n\n');
+    const blob = new Blob([chatText], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `issue-spotting-chat-${Date.now()}.md`;
+    a.click();
+  };
+
+  const handleExportIssueMap = () => {
+    if (!issueMap) return;
+    const blob = new Blob([JSON.stringify(issueMap, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `issue-map-${Date.now()}.json`;
+    a.click();
+  };
+
+  return (
+    <div className="mx-auto flex h-full max-w-7xl flex-col p-4 sm:p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Issue-Spotting Practice</h1>
+        <p className="text-muted-foreground mt-2 text-sm sm:text-base">
+          Upload a fact pattern and work with an AI coach to identify issues, build IRAC analysis, and evaluate your answers.
+        </p>
       </div>
+
+      {!sessionStarted ? (
+        // Setup Phase
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Left: Fact Pattern Input */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="size-5" />
+                Fact Pattern
+              </CardTitle>
+              <CardDescription>
+                Upload a file (PDF, DOCX, TXT) or paste your fact pattern below
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-3">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="fact-pattern-upload"
+                />
+                <label htmlFor="fact-pattern-upload">
+                  <Button variant="outline" disabled={isLoading} asChild>
+                    <span>
+                      <Paperclip className="size-4 mr-2" />
+                      Upload File
+                    </span>
+                  </Button>
+                </label>
+                <Button variant="outline" onClick={handleLoadSample}>
+                  Load Sample
+                </Button>
+              </div>
+
+              <Textarea
+                placeholder="Or paste your fact pattern here..."
+                value={pastedText}
+                onChange={(e) => setPastedText(e.target.value)}
+                className="min-h-[200px]"
+              />
+
+              {pastedText && !factPattern && (
+                <Button onClick={handleUsePastedText}>
+                  Use Pasted Text
+                </Button>
+              )}
+
+              {factPattern && (
+                <div className="rounded-lg border bg-muted/50 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="secondary">
+                      {factPattern.sourceType === 'upload' ? 'Uploaded' : 'Pasted'}
+                    </Badge>
+                    {factPattern.filename && (
+                      <span className="text-sm text-muted-foreground">{factPattern.filename}</span>
+                    )}
+                  </div>
+                  <ScrollArea className="h-[100px]">
+                    <p className="text-sm whitespace-pre-wrap">{factPattern.text}</p>
+                  </ScrollArea>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Right: Configuration */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="size-5" />
+                Session Setup
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Subjects (select all that apply)</label>
+                <div className="flex flex-wrap gap-2">
+                  {SUBJECTS.map(subject => (
+                    <Badge
+                      key={subject}
+                      variant={config.subjects.includes(subject) ? 'default' : 'outline'}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setConfig(prev => ({
+                          ...prev,
+                          subjects: prev.subjects.includes(subject)
+                            ? prev.subjects.filter(s => s !== subject)
+                            : [...prev.subjects, subject]
+                        }));
+                      }}
+                    >
+                      {subject}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Level</label>
+                <div className="flex gap-2">
+                  {LEVELS.map(level => (
+                    <Badge
+                      key={level}
+                      variant={config.level === level ? 'default' : 'outline'}
+                      className="cursor-pointer flex-1 justify-center"
+                      onClick={() => setConfig(prev => ({ ...prev, level }))}
+                    >
+                      {level}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Focus & Constraints</label>
+                <Textarea
+                  placeholder="e.g., 'Emphasize negligence defenses, ignore damages calculation'"
+                  value={config.focus}
+                  onChange={(e) => setConfig(prev => ({ ...prev, focus: e.target.value }))}
+                  className="min-h-[80px]"
+                />
+              </div>
+
+              <Button
+                onClick={handleStartSession}
+                disabled={!factPattern || isLoading || config.subjects.length === 0}
+                className="w-full"
+                size="lg"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  <>
+                    <BookOpen className="size-4 mr-2" />
+                    Start Session
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        // Session Phase
+        <div className="grid gap-6 lg:grid-cols-4 flex-1 min-h-0">
+          {/* Left: Chat */}
+          <Card className="lg:col-span-3 flex flex-col">
+            <CardHeader className="flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="size-5" />
+                  Issue-Spotting Coach
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleExportChat}>
+                    <Download className="size-4 mr-2" />
+                    Export Chat
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowEvalModal(true)}>
+                    Evaluate Answer
+                  </Button>
+                </div>
+              </div>
+              <CardDescription>
+                {config.subjects.join(', ')} • {config.level} Level
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent className="flex-1 min-h-0 flex flex-col gap-4">
+              <ScrollArea className="flex-1">
+                <div className="space-y-4 pr-4">
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        "rounded-lg p-4",
+                        msg.role === 'user' ? 'bg-primary/10 ml-12' : 'bg-muted mr-12'
+                      )}
+                    >
+                      <div className="text-xs font-semibold mb-2 uppercase text-muted-foreground">
+                        {msg.role === 'user' ? 'You' : 'Coach'}
+                      </div>
+                      <div className="prose prose-sm max-w-none whitespace-pre-wrap">
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                  {isLoading && (
+                    <div className="rounded-lg p-4 bg-muted mr-12">
+                      <Loader2 className="size-4 animate-spin" />
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              </ScrollArea>
+
+              <div className="flex gap-2 flex-shrink-0">
+                <Textarea
+                  placeholder="Ask a question or share your analysis..."
+                  value={currentMessage}
+                  onChange={(e) => setCurrentMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }
+                  }}
+                  className="min-h-[60px]"
+                />
+                <Button onClick={handleSendMessage} disabled={isLoading || !currentMessage.trim()}>
+                  <Send className="size-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Right: Issue Map */}
+          <Card className="flex flex-col">
+            <CardHeader className="flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Issue Map</CardTitle>
+                {issueMap && (
+                  <Button variant="ghost" size="sm" onClick={handleExportIssueMap}>
+                    <Download className="size-4" />
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 min-h-0">
+              {issueMap ? (
+                <ScrollArea className="h-full">
+                  <IssueTree nodes={issueMap} />
+                </ScrollArea>
+              ) : (
+                <div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
+                  Issue map will appear here as the coach provides analysis
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Evaluation Modal */}
+      {showEvalModal && factPattern && (
+        <EvalModal
+          factPattern={factPattern}
+          config={config}
+          onClose={() => setShowEvalModal(false)}
+        />
+      )}
     </div>
   );
 }
