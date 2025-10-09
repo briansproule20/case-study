@@ -5,6 +5,7 @@ import {
   Brain,
   FileText,
   GraduationCap,
+  Library,
   Lightbulb,
   Search
 } from 'lucide-react';
@@ -47,17 +48,12 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       {/* Hero Section */}
-      <section className="relative flex flex-1 items-center justify-center px-6 py-24 sm:py-32">
+      <section className="relative flex flex-1 items-center justify-center px-4 py-16 sm:px-6 sm:py-24 lg:py-32">
         <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]" />
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-background via-background/95 to-background" />
 
         <div className="mx-auto max-w-4xl text-center">
-          <div className="mb-8 inline-flex items-center rounded-full border bg-background/60 px-4 py-1.5 text-sm backdrop-blur-sm">
-            <GraduationCap className="mr-2 size-4 text-primary" />
-            <span className="text-muted-foreground">Legal Study Aide</span>
-          </div>
-
-          <h1 className="mb-6 font-bold text-5xl tracking-tight sm:text-6xl md:text-7xl">
+          <h1 className="mb-4 font-bold text-4xl tracking-tight sm:mb-6 sm:text-5xl md:text-6xl lg:text-7xl">
             Your
             <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               {' '}Law School{' '}
@@ -69,22 +65,22 @@ export default function Home() {
             Companion
           </h1>
 
-          <p className="mx-auto mb-10 max-w-2xl text-balance text-lg text-muted-foreground sm:text-xl">
+          <p className="mx-auto mb-8 max-w-2xl text-balance text-base text-muted-foreground sm:mb-10 sm:text-lg md:text-xl">
             Transform how you study law. Upload your materials, generate practice questions,
             and master case law with AI-powered flashcards and issue spotting exercises.
           </p>
 
-          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
             <Link href="/chat">
               <Button size="lg" className="group gap-2">
-                Get Started
+                Chat Now!
                 <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
               </Button>
             </Link>
-            <Link href="/chat">
+            <Link href="/case-library">
               <Button size="lg" variant="secondary" className="gap-2">
-                <BookOpen className="size-4" />
-                Start Studying
+                <Library className="size-4" />
+                Case Library
               </Button>
             </Link>
           </div>
