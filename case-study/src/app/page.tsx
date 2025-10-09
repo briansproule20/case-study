@@ -58,11 +58,11 @@ export default function Home() {
           </div>
 
           <h1 className="mb-6 font-bold text-5xl tracking-tight sm:text-6xl md:text-7xl">
-            Your AI-Powered
+            Your
             <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
               {' '}Law School{' '}
             </span>
-            Companion
+            and Legal Study Companion
           </h1>
 
           <p className="mx-auto mb-10 max-w-2xl text-balance text-lg text-muted-foreground sm:text-xl">
