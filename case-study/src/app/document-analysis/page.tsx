@@ -136,7 +136,7 @@ export default function DocumentAnalysisPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Document Analysis</h1>
           <p className="text-muted-foreground mt-2">
-            Upload legal documents, assignments, or case briefs to get AI-powered insights and analysis.
+            Upload legal documents, assignments, or case briefs to get insights and analysis.
           </p>
         </div>
 
@@ -240,7 +240,7 @@ export default function DocumentAnalysisPage() {
             <CardHeader>
               <CardTitle>Analysis Results</CardTitle>
               <CardDescription>
-                AI-generated analysis of your document
+                Analysis of your document
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -264,7 +264,7 @@ export default function DocumentAnalysisPage() {
               </div>
               <h3 className="text-lg font-semibold">Ready to Analyze</h3>
               <p className="text-muted-foreground mt-2 max-w-sm">
-                Upload a document above to get started with AI-powered legal analysis
+                Upload a document above to get started with legal analysis
               </p>
             </div>
           </div>

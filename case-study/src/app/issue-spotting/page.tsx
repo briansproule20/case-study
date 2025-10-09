@@ -13,9 +13,10 @@ import { prepareFilesForUpload } from '@/lib/upload-helper';
 import type { FactPattern, SessionConfig, LLMMessage, IssueNode, EvaluationReport } from '@/lib/types';
 import { EvalModal } from '@/app/issue-spotting/components/EvalModal';
 import { IssueTree } from '@/app/issue-spotting/components/IssueTree';
+import { Response } from '@/components/ai-elements/response';
 
 const SUBJECTS = ['Torts', 'Contracts', 'Crim', 'ConLaw', 'Property', 'CivPro'] as const;
-const LEVELS = ['1L', 'Bar', 'Advanced'] as const;
+const LEVELS = ['1L', '2L', '3L', 'Bar', 'Advanced'] as const;
 
 const SAMPLE_FACT_PATTERN = `Alice speeds through a red light while texting and hits Bob, who is jaywalking outside a bar at night. Bob had been drinking. The city's traffic camera was malfunctioning. Bob suffers a broken leg; his employer fires him for missing work.`;
 
@@ -79,13 +80,45 @@ export default function IssueSpottingPage() {
     });
   };
 
-  // Load sample
-  const handleLoadSample = () => {
-    setPastedText(SAMPLE_FACT_PATTERN);
-    setFactPattern({
-      sourceType: 'paste',
-      text: SAMPLE_FACT_PATTERN
-    });
+  // Load sample - generate fact pattern based on session setup
+  const handleLoadSample = async () => {
+    if (config.subjects.length === 0) {
+      alert('Please select at least one subject first');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/generate-fact-pattern', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subjects: config.subjects,
+          level: config.level,
+          focus: config.focus
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to generate fact pattern');
+
+      const { text } = await response.json();
+      setPastedText(text);
+      setFactPattern({
+        sourceType: 'paste',
+        text
+      });
+    } catch (error) {
+      console.error('Generate sample error:', error);
+      alert('Failed to generate fact pattern. Using default sample.');
+      // Fallback to default sample
+      setPastedText(SAMPLE_FACT_PATTERN);
+      setFactPattern({
+        sourceType: 'paste',
+        text: SAMPLE_FACT_PATTERN
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Start session
@@ -111,19 +144,30 @@ export default function IssueSpottingPage() {
 
       if (!response.ok) throw new Error('Failed to start session');
 
-      const { replyMarkdown, issueMap: newIssueMap } = await response.json();
-      
-      const assistantMsg: LLMMessage & { id: string } = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: replyMarkdown
-      };
-      
-      setMessages([assistantMsg]);
-      if (newIssueMap) setIssueMap(newIssueMap);
-      
-      // Scroll to bottom
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let content = '';
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          content += decoder.decode(value, { stream: true });
+
+          // Update message with streaming content
+          const assistantMsg: LLMMessage & { id: string } = {
+            id: 'assistant-0',
+            role: 'assistant',
+            content
+          };
+
+          setMessages([assistantMsg]);
+
+          // Scroll to bottom
+          setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 0);
+        }
+      }
     } catch (error) {
       console.error('Start session error:', error);
       alert('Failed to start coaching session');
@@ -137,7 +181,7 @@ export default function IssueSpottingPage() {
     if (!currentMessage.trim() || !factPattern || isLoading) return;
 
     const userMsg: LLMMessage & { id: string } = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}`,
       role: 'user',
       content: currentMessage
     };
@@ -162,19 +206,35 @@ export default function IssueSpottingPage() {
 
       if (!response.ok) throw new Error('Failed to send message');
 
-      const { replyMarkdown, issueMap: newIssueMap } = await response.json();
-      
-      const assistantMsg: LLMMessage & { id: string } = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: replyMarkdown
-      };
-      
-      setMessages(prev => [...prev, assistantMsg]);
-      if (newIssueMap) setIssueMap(newIssueMap);
-      
-      // Scroll to bottom
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let content = '';
+      const assistantId = `assistant-${Date.now()}`;
+
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          content += decoder.decode(value, { stream: true });
+
+          // Update message with streaming content
+          setMessages(prev => {
+            const withoutLastAssistant = prev.filter(m => m.id !== assistantId);
+            return [
+              ...withoutLastAssistant,
+              {
+                id: assistantId,
+                role: 'assistant',
+                content
+              }
+            ];
+          });
+
+          // Scroll to bottom
+          setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 0);
+        }
+      }
     } catch (error) {
       console.error('Send message error:', error);
       alert('Failed to send message');
@@ -183,17 +243,20 @@ export default function IssueSpottingPage() {
     }
   };
 
-  // Export functions
-  const handleExportChat = () => {
-    const chatText = messages.map(m => `${m.role.toUpperCase()}:\n${m.content}\n`).join('\n---\n\n');
-    const blob = new Blob([chatText], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `issue-spotting-chat-${Date.now()}.md`;
-    a.click();
+  // Clear session
+  const handleClearSession = () => {
+    setSessionStarted(false);
+    setMessages([]);
+    setCurrentMessage('');
+    setIssueMap(null);
+    setFactPattern(null);
+    setPastedText('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
+  // Export issue map function
   const handleExportIssueMap = () => {
     if (!issueMap) return;
     const blob = new Blob([JSON.stringify(issueMap, null, 2)], { type: 'application/json' });
@@ -209,7 +272,7 @@ export default function IssueSpottingPage() {
       <div className="mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Issue-Spotting Practice</h1>
         <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-          Upload a fact pattern and work with an AI coach to identify issues, build IRAC analysis, and evaluate your answers.
+          Upload a fact pattern to identify issues, build IRAC analysis, and evaluate your answers.
         </p>
       </div>
 
@@ -224,7 +287,7 @@ export default function IssueSpottingPage() {
                 Fact Pattern
               </CardTitle>
               <CardDescription>
-                Upload a file (PDF, DOCX, TXT) or paste your fact pattern below
+                Upload a file (PDF, DOCX, TXT), paste your fact pattern below, or generate one using the session setup tags and Load Sample button
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -245,8 +308,15 @@ export default function IssueSpottingPage() {
                     </span>
                   </Button>
                 </label>
-                <Button variant="outline" onClick={handleLoadSample}>
-                  Load Sample
+                <Button variant="outline" onClick={handleLoadSample} disabled={isLoading || config.subjects.length === 0}>
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="size-4 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    'Load Sample'
+                  )}
                 </Button>
               </div>
 
@@ -282,7 +352,7 @@ export default function IssueSpottingPage() {
           </Card>
 
           {/* Right: Configuration */}
-          <Card>
+          <Card className="h-fit">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="size-5" />
@@ -369,15 +439,14 @@ export default function IssueSpottingPage() {
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <BookOpen className="size-5" />
-                  Issue-Spotting Coach
+                  Issue-Spotting Assistant
                 </CardTitle>
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleExportChat}>
-                    <Download className="size-4 mr-2" />
-                    Export Chat
-                  </Button>
                   <Button variant="outline" size="sm" onClick={() => setShowEvalModal(true)}>
                     Evaluate Answer
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={handleClearSession}>
+                    Clear Session
                   </Button>
                 </div>
               </div>
@@ -398,11 +467,17 @@ export default function IssueSpottingPage() {
                       )}
                     >
                       <div className="text-xs font-semibold mb-2 uppercase text-muted-foreground">
-                        {msg.role === 'user' ? 'You' : 'Coach'}
+                        {msg.role === 'user' ? 'You' : 'Assistant'}
                       </div>
-                      <div className="prose prose-sm max-w-none whitespace-pre-wrap">
-                        {msg.content}
-                      </div>
+                      {msg.role === 'assistant' ? (
+                        <div className="prose prose-sm max-w-none dark:prose-invert">
+                          <Response>{msg.content}</Response>
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap">
+                          {msg.content}
+                        </div>
+                      )}
                     </div>
                   ))}
                   {isLoading && (
@@ -453,7 +528,7 @@ export default function IssueSpottingPage() {
                 </ScrollArea>
               ) : (
                 <div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
-                  Issue map will appear here as the coach provides analysis
+                  Issue map will appear here during analysis
                 </div>
               )}
             </CardContent>

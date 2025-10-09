@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { anthropic } from '@/echo';
-import { generateText } from 'ai';
+import { streamText } from 'ai';
 import type { FactPattern, SessionConfig, LLMMessage } from '@/lib/types';
 
 export const maxDuration = 60;
@@ -25,6 +25,7 @@ ROLE & BEHAVIOR:
 - Keep responses concise, friendly, and exam-practical
 - Never invent facts; highlight missing facts as questions
 - If a student shares a draft, provide inline annotations of strengths and weaknesses
+- Format responses using markdown for better readability (headings, lists, bold, etc.)
 
 ISSUE MAP FORMAT:
 When presenting issues, structure them as:
@@ -58,31 +59,20 @@ ${history.length > 0 ? `Previous conversation context is in the message history.
       { role: 'user', content: userPrompt }
     ];
 
-    const { text } = await generateText({
+    const result = streamText({
       model: anthropic('claude-sonnet-4-20250514'),
       messages: messages.map(m => ({ role: m.role, content: m.content }))
     });
 
-    // Try to extract issue map if present (look for structured format)
-    let issueMap = null;
-    const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
-    if (jsonMatch) {
-      try {
-        issueMap = JSON.parse(jsonMatch[1]);
-      } catch {
-        // No valid JSON, that's fine
-      }
-    }
-
-    return NextResponse.json({
-      replyMarkdown: text,
-      issueMap
-    });
+    return result.toTextStreamResponse();
   } catch (error) {
     console.error('Coach API error:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate coach response' },
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ error: 'Failed to generate coach response' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }
 }
