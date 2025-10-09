@@ -59,7 +59,7 @@ ${history.length > 0 ? `Previous conversation context is in the message history.
     ];
 
     const { text } = await generateText({
-      model: anthropic('claude-3-7-sonnet-20250219'),
+      model: anthropic('claude-sonnet-4-20250514'),
       messages: messages.map(m => ({ role: m.role, content: m.content }))
     });
 

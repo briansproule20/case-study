@@ -93,7 +93,7 @@ You must respond with ONLY a valid JSON object in this exact format (no markdown
 Make sure to create exactly 10 questions that cover different aspects of the materials and test understanding rather than just memorization.`;
 
     const { text } = await generateText({
-      model: anthropic('claude-3-7-sonnet-20250219'),
+      model: anthropic('claude-sonnet-4-20250514'),
       prompt
     });
 

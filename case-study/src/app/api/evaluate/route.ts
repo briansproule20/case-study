@@ -176,7 +176,7 @@ ${userAnswer}
 Return ONLY valid JSON matching the EvaluationReport interface. No markdown, no code blocks, just raw JSON.`;
 
     const { text } = await generateText({
-      model: anthropic('claude-3-7-sonnet-20250219'),
+      model: anthropic('claude-sonnet-4-20250514'),
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }

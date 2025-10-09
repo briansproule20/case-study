@@ -101,7 +101,7 @@ Create 20-25 flashcards. You must respond with ONLY a valid JSON object in this 
 Ensure each flashcard is substantive, accurate, and focused on the most important legal concepts from the materials.`;
 
     const { text } = await generateText({
-      model: anthropic('claude-3-7-sonnet-20250219'),
+      model: anthropic('claude-sonnet-4-20250514'),
       prompt
     });
 
