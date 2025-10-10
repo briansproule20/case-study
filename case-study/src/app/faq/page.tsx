@@ -96,7 +96,7 @@ export default function FAQPage() {
                       <p className="font-semibold">This means:</p>
                       <ul className="space-y-2 ml-4 list-disc mt-2">
                         <li>Use it heavily during exam prep without breaking the bank</li>
-                        <li>Pay almost nothing during breaks</li>
+                        <li>Pay nothing during breaks</li>
                         <li>No wasted subscription fees for months you don't use it</li>
                         <li>Complete control over spending—see costs in real-time</li>
                       </ul>
