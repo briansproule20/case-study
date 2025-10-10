@@ -64,9 +64,8 @@ export default function Home() {
 
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="mb-4 font-bold text-4xl tracking-tight sm:mb-6 sm:text-5xl md:text-6xl lg:text-7xl">
-            Your
             <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              {' '}Law School{' '}
+              Law School{' '}
             </span>
             and 
             <span className="bg-gradient-to-r from-secondary to-secondary/80 bg-clip-text text-transparent">
