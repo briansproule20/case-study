@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { Paperclip, X, BookOpen, Loader2, FileText, Image, ChevronLeft, ChevronRight, RotateCw, Save, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { saveArtifact, type FlashcardData } from '@/lib/db';
@@ -36,7 +36,7 @@ const acceptedFileTypes = [
 
 const FLASHCARD_COUNTS = [5, 10, 15, 20] as const;
 
-export default function FlashCardsPage() {
+function FlashCardsContent() {
   const searchParams = useSearchParams();
   const [files, setFiles] = useState<FileList | null>(null);
   const [instructions, setInstructions] = useState('');
@@ -535,5 +535,18 @@ export default function FlashCardsPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function FlashCardsPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto flex h-full max-w-4xl flex-col items-center justify-center p-6">
+        <BookOpen className="size-12 text-muted-foreground animate-pulse mb-4" />
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    }>
+      <FlashCardsContent />
+    </Suspense>
   );
 }

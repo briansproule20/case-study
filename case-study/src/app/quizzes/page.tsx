@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { Paperclip, X, Brain, Loader2, BookOpen, FileText, Image, Save, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { saveArtifact, type QuizData } from '@/lib/db';
@@ -36,7 +36,7 @@ const acceptedFileTypes = [
 
 const QUESTION_COUNTS = [5, 10, 15, 20] as const;
 
-export default function QuizzesPage() {
+function QuizzesContent() {
   const searchParams = useSearchParams();
   const [files, setFiles] = useState<FileList | null>(null);
   const [instructions, setInstructions] = useState('');
@@ -549,5 +549,18 @@ export default function QuizzesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function QuizzesPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto flex h-full max-w-4xl flex-col items-center justify-center p-6">
+        <Brain className="size-12 text-muted-foreground animate-pulse mb-4" />
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    }>
+      <QuizzesContent />
+    </Suspense>
   );
 }

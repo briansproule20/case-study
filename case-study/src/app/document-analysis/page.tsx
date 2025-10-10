@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -48,7 +48,7 @@ const analysisOptions = [
   },
 ];
 
-export default function DocumentAnalysisPage() {
+function DocumentAnalysisContent() {
   const searchParams = useSearchParams();
   const [file, setFile] = useState<File | null>(null);
   const [extractedText, setExtractedText] = useState<string>('');
@@ -348,5 +348,18 @@ export default function DocumentAnalysisPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function DocumentAnalysisPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto flex h-full max-w-4xl flex-col items-center justify-center p-6">
+        <FileSearch className="size-12 text-muted-foreground animate-pulse mb-4" />
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    }>
+      <DocumentAnalysisContent />
+    </Suspense>
   );
 }

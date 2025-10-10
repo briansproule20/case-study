@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { Paperclip, Send, FileText, BookOpen, Target, Loader2, X, ChevronDown, ChevronRight, Download, Save, Check } from 'lucide-react';
 import { saveArtifact, type IssueSpottingData } from '@/lib/db';
 import { useSearchParams } from 'next/navigation';
@@ -22,7 +22,7 @@ const LEVELS = ['1L', '2L', '3L', 'Bar', 'Advanced'] as const;
 
 const SAMPLE_FACT_PATTERN = `Alice speeds through a red light while texting and hits Bob, who is jaywalking outside a bar at night. Bob had been drinking. The city's traffic camera was malfunctioning. Bob suffers a broken leg; his employer fires him for missing work.`;
 
-export default function IssueSpottingPage() {
+function IssueSpottingContent() {
   const searchParams = useSearchParams();
   // State
   const [factPattern, setFactPattern] = useState<FactPattern | null>(null);
@@ -623,5 +623,18 @@ export default function IssueSpottingPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function IssueSpottingPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto flex h-full max-w-4xl flex-col items-center justify-center p-6">
+        <Target className="size-12 text-muted-foreground animate-pulse mb-4" />
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    }>
+      <IssueSpottingContent />
+    </Suspense>
   );
 }
