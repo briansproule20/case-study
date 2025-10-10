@@ -32,6 +32,15 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const instructions = formData.get('instructions') as string || '';
+    const questionCount = parseInt(formData.get('questionCount') as string || '10', 10);
+
+    // Validate question count
+    if (![5, 10, 15, 20].includes(questionCount)) {
+      return NextResponse.json(
+        { error: 'Invalid question count. Must be 5, 10, 15, or 20.' },
+        { status: 400 }
+      );
+    }
 
     // Collect all uploaded files (handles both direct and blob uploads)
     const files = await extractFilesFromFormData(formData);
@@ -64,14 +73,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate quiz using AI
-    const prompt = `You are a legal education expert tasked with creating a 10-question multiple choice quiz based on the provided legal materials.
+    const prompt = `You are a legal education expert tasked with creating a ${questionCount}-question multiple choice quiz based on the provided legal materials.
 
 Materials:
 ${allText}
 
 ${instructions ? `Additional Instructions: ${instructions}` : ''}
 
-Create exactly 10 multiple choice questions. Each question should:
+Create exactly ${questionCount} multiple choice questions. Each question should:
 1. Be based on the legal concepts, cases, or principles in the materials
 2. Have 4 options (A, B, C, D)
 3. Have exactly one correct answer
@@ -90,7 +99,7 @@ You must respond with ONLY a valid JSON object in this exact format (no markdown
   ]
 }
 
-Make sure to create exactly 10 questions that cover different aspects of the materials and test understanding rather than just memorization.`;
+Make sure to create exactly ${questionCount} questions that cover different aspects of the materials and test understanding rather than just memorization.`;
 
     const { text } = await generateText({
       model: anthropic('claude-sonnet-4-20250514'),

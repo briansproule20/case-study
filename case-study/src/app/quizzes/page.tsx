@@ -32,9 +32,12 @@ const acceptedFileTypes = [
   'text/markdown'
 ];
 
+const QUESTION_COUNTS = [5, 10, 15, 20] as const;
+
 export default function QuizzesPage() {
   const [files, setFiles] = useState<FileList | null>(null);
   const [instructions, setInstructions] = useState('');
+  const [questionCount, setQuestionCount] = useState<number>(10);
   const [isGenerating, setIsGenerating] = useState(false);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +77,7 @@ export default function QuizzesPage() {
       // Prepare files for upload (handles blob storage automatically for large files)
       const formData = await prepareFilesForUpload(files);
       formData.append('instructions', instructions);
+      formData.append('questionCount', questionCount.toString());
 
       const response = await fetch('/api/quizzes/generate', {
         method: 'POST',
@@ -213,6 +217,29 @@ export default function QuizzesPage() {
                 )}
 
                 <div className="space-y-2">
+                  <label className="text-sm font-medium">Number of Questions</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {QUESTION_COUNTS.map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setQuestionCount(count)}
+                        className={cn(
+                          "rounded-lg border-2 py-3 text-center font-semibold transition-all",
+                          "hover:border-primary/50 hover:bg-muted/50",
+                          "active:scale-95",
+                          questionCount === count
+                            ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                            : "border-muted bg-background text-foreground"
+                        )}
+                      >
+                        {count}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Quiz Instructions (Optional)</label>
                   <Textarea
                     placeholder="Add any specific instructions for the quiz generation (e.g., 'Focus on constitutional law principles' or 'Include questions about contract formation')"
@@ -231,18 +258,18 @@ export default function QuizzesPage() {
                 <Button
                   onClick={generateQuiz}
                   disabled={!files || files.length === 0 || isGenerating}
-                  className="w-full gap-2"
+                  className="w-full gap-2 bg-primary hover:bg-primary/90"
                   size="lg"
                 >
                   {isGenerating ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      Generating Quiz...
+                      Generating {questionCount}-Question Quiz...
                     </>
                   ) : (
                     <>
                       <Brain className="size-4" />
-                      Generate 10-Question Quiz
+                      Generate {questionCount}-Question Quiz
                     </>
                   )}
                 </Button>
