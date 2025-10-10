@@ -66,14 +66,39 @@ export interface IssueSpottingData {
   topic?: string;
 }
 
+// User preferences interface
+export interface UserPreferences {
+  id?: number;
+  primaryColor: string;
+  secondaryColor: string;
+  darkMode: boolean;
+  updatedAt: Date;
+}
+
 // Database class
 export class CaseStudyDB extends Dexie {
   artifacts!: Table<SavedArtifact, number>;
+  preferences!: Table<UserPreferences, number>;
 
   constructor() {
     super('case-study-db');
     this.version(1).stores({
       artifacts: '++id, type, createdAt',
+    });
+    this.version(2).stores({
+      artifacts: '++id, type, createdAt',
+      preferences: '++id, updatedAt',
+    });
+    // Version 3: Add darkMode field to preferences (Dexie handles this automatically)
+    this.version(3).stores({
+      artifacts: '++id, type, createdAt',
+      preferences: '++id, updatedAt',
+    }).upgrade(async (tx) => {
+      // Update existing preferences to include darkMode field
+      const prefs = await tx.table('preferences').toArray();
+      for (const pref of prefs) {
+        await tx.table('preferences').update(pref.id!, { darkMode: false });
+      }
     });
   }
 }
@@ -103,6 +128,43 @@ export const deleteArtifact = async (id: number) => {
 
 export const getArtifact = async (id: number) => {
   return await db.artifacts.get(id);
+};
+
+// User preferences helpers
+export const saveUserPreferences = async (primaryColor: string, secondaryColor: string, darkMode?: boolean) => {
+  // Get existing preferences to preserve darkMode if not provided
+  const existing = await getUserPreferences();
+  const currentDarkMode = darkMode !== undefined ? darkMode : (existing?.darkMode ?? false);
+
+  // Delete all existing preferences and save new one
+  await db.preferences.clear();
+  return await db.preferences.add({
+    primaryColor,
+    secondaryColor,
+    darkMode: currentDarkMode,
+    updatedAt: new Date(),
+  });
+};
+
+export const getUserPreferences = async () => {
+  const prefs = await db.preferences.toArray();
+  return prefs.length > 0 ? prefs[0] : null;
+};
+
+export const saveDarkModePreference = async (darkMode: boolean) => {
+  const existing = await getUserPreferences();
+  await db.preferences.clear();
+  return await db.preferences.add({
+    primaryColor: existing?.primaryColor ?? '#6B7280',
+    secondaryColor: existing?.secondaryColor ?? '#475569',
+    darkMode,
+    updatedAt: new Date(),
+  });
+};
+
+export const getUserDarkModePreference = async () => {
+  const prefs = await getUserPreferences();
+  return prefs?.darkMode ?? null;
 };
 
 // Storage quota helpers
