@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
+// Increase body size limit for blob uploads (50MB max)
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb',
+    },
+  },
+};
+
 // This route handles large file uploads via Vercel Blob
 export async function POST(request: NextRequest) {
   try {
@@ -16,11 +25,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log(`Uploading file to blob: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+
     // Upload to Vercel Blob
     const blob = await put(file.name, file, {
       access: 'public',
       addRandomSuffix: true,
     });
+
+    console.log(`File uploaded successfully: ${blob.url}`);
 
     return NextResponse.json({
       url: blob.url,

@@ -16,10 +16,9 @@ export async function prepareFilesForUpload(files: FileList | File[]): Promise<F
   for (let i = 0; i < fileArray.length; i++) {
     const file = fileArray[i];
 
-    // For large files on production, use blob storage
-    if (file.size > DIRECT_UPLOAD_LIMIT && typeof window !== 'undefined' && 
-        (window.location.hostname.includes('vercel.app') || window.location.hostname.includes('yourdomain.com'))) {
-      
+    // For large files, use blob storage (browser only, not SSR)
+    if (file.size > DIRECT_UPLOAD_LIMIT && typeof window !== 'undefined') {
+
       try {
         // Upload to blob storage
         const blobFormData = new FormData();
@@ -31,24 +30,23 @@ export async function prepareFilesForUpload(files: FileList | File[]): Promise<F
         });
 
         if (!response.ok) {
-          // Fall back to direct upload and let server handle it
-          formData.append(`file-${i}`, file);
-          continue;
+          throw new Error(`Blob upload failed: ${response.statusText}`);
         }
 
         const { url } = await response.json();
-        
+
         // Add blob URL instead of file
         formData.append(`blob-${i}`, url);
         formData.append(`blob-${i}-filename`, file.name);
         formData.append(`blob-${i}-type`, file.type);
       } catch (error) {
-        console.error('Blob upload failed, using direct upload:', error);
-        // Fall back to direct upload
-        formData.append(`file-${i}`, file);
+        console.error('Blob upload failed:', error);
+        // Throw error for large files instead of falling back to direct upload
+        // This prevents 413 errors on the main API route
+        throw new Error(`File "${file.name}" is too large (${formatFileSize(file.size)}). Failed to upload to blob storage.`);
       }
     } else {
-      // Direct upload for small files or local dev
+      // Direct upload for small files
       formData.append(`file-${i}`, file);
     }
   }
