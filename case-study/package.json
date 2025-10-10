@@ -6,8 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "biome check --write",
-    "postinstall": "npm dedupe || true"
+    "lint": "biome check --write"
   },
   "dependencies": {
     "@ai-sdk/openai": "2.0.16",
