@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ArrowLeft, MessageSquare, User, Bot } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,7 +9,7 @@ import { db, type ChatData } from '@/lib/db';
 import { Response } from '@/components/ai-elements/response';
 import { cn } from '@/lib/utils';
 
-export default function ViewChatPage() {
+function ViewChatContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [chatData, setChatData] = useState<ChatData | null>(null);
@@ -143,5 +143,18 @@ export default function ViewChatPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function ViewChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="mx-auto flex h-full max-w-4xl flex-col items-center justify-center p-6">
+        <MessageSquare className="size-12 text-muted-foreground animate-pulse mb-4" />
+        <p className="text-muted-foreground">Loading chat...</p>
+      </div>
+    }>
+      <ViewChatContent />
+    </Suspense>
   );
 }
