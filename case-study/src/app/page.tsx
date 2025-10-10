@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import DotBackground from '@/components/ui/dot-background';
 import {
   ArrowRight,
   BookOpen,
@@ -59,8 +60,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       {/* Hero Section */}
       <section className="relative flex flex-1 items-center justify-center px-4 py-16 sm:px-6 sm:py-24 lg:py-32">
-        <div className="absolute inset-0 -z-10 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]" />
-        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-background via-background/95 to-background" />
+        <DotBackground />
 
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="mb-4 font-bold text-4xl tracking-tight sm:mb-6 sm:text-5xl md:text-6xl lg:text-7xl">
