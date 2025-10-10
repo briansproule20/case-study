@@ -31,6 +31,18 @@ export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
     const instructions = formData.get('instructions') as string || '';
+    const flashcardCount = parseInt(formData.get('flashcardCount') as string || '10', 10);
+
+    console.log('[Flashcards] Received request with count:', flashcardCount);
+
+    // Validate flashcard count
+    if (![5, 10, 15, 20].includes(flashcardCount)) {
+      console.error('[Flashcards] Invalid flashcard count:', flashcardCount);
+      return NextResponse.json(
+        { error: 'Invalid flashcard count. Must be 5, 10, 15, or 20.' },
+        { status: 400 }
+      );
+    }
 
     // Collect all uploaded files (handles both direct and blob uploads)
     const files = await extractFilesFromFormData(formData);
@@ -86,7 +98,7 @@ Guidelines for creating flashcards:
 - Make cards specific enough to be useful but not overly complex
 - Prioritize foundational concepts and frequently tested material
 
-Create 20-25 flashcards. You must respond with ONLY a valid JSON object in this exact format (no markdown, no code blocks, just raw JSON):
+Create exactly ${flashcardCount} flashcards. You must respond with ONLY a valid JSON object in this exact format (no markdown, no code blocks, just raw JSON):
 {
   "flashcards": [
     {
@@ -119,9 +131,10 @@ Ensure each flashcard is substantive, accurate, and focused on the most importan
 
     return NextResponse.json(deck);
   } catch (error) {
-    console.error('Flashcard generation error:', error);
+    console.error('[Flashcards] Generation error:', error);
+    console.error('[Flashcards] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: 'Failed to generate flashcards' },
+      { error: error instanceof Error ? error.message : 'Failed to generate flashcards' },
       { status: 500 }
     );
   }

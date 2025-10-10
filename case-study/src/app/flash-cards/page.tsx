@@ -32,9 +32,12 @@ const acceptedFileTypes = [
   'text/markdown'
 ];
 
+const FLASHCARD_COUNTS = [5, 10, 15, 20] as const;
+
 export default function FlashCardsPage() {
   const [files, setFiles] = useState<FileList | null>(null);
   const [instructions, setInstructions] = useState('');
+  const [flashcardCount, setFlashcardCount] = useState<number>(10);
   const [isGenerating, setIsGenerating] = useState(false);
   const [deck, setDeck] = useState<FlashcardDeck | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +77,7 @@ export default function FlashCardsPage() {
       // Prepare files for upload (handles blob storage automatically for large files)
       const formData = await prepareFilesForUpload(files);
       formData.append('instructions', instructions);
+      formData.append('flashcardCount', flashcardCount.toString());
 
       const response = await fetch('/api/flashcards/generate', {
         method: 'POST',
@@ -203,6 +207,29 @@ export default function FlashCardsPage() {
                 )}
 
                 <div className="space-y-2">
+                  <label className="text-sm font-medium">Number of Flashcards</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {FLASHCARD_COUNTS.map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setFlashcardCount(count)}
+                        className={cn(
+                          "rounded-lg border-2 py-3 text-center font-semibold transition-all",
+                          "hover:border-primary/50 hover:bg-muted/50",
+                          "active:scale-95",
+                          flashcardCount === count
+                            ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                            : "border-muted bg-background text-foreground"
+                        )}
+                      >
+                        {count}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-sm font-medium">Flashcard Instructions (Optional)</label>
                   <Textarea
                     placeholder="Add specific instructions (e.g., 'Focus on constitutional law amendments' or 'Include case names and holdings')"
@@ -221,18 +248,18 @@ export default function FlashCardsPage() {
                 <Button
                   onClick={generateFlashcards}
                   disabled={!files || files.length === 0 || isGenerating}
-                  className="w-full gap-2"
+                  className="w-full gap-2 bg-primary hover:bg-primary/90"
                   size="lg"
                 >
                   {isGenerating ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      Generating Flashcards...
+                      Generating {flashcardCount} Flashcards...
                     </>
                   ) : (
                     <>
                       <BookOpen className="size-4" />
-                      Generate Flashcards
+                      Generate {flashcardCount} Flashcards
                     </>
                   )}
                 </Button>
