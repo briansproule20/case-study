@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Paperclip, Send, FileText, BookOpen, Target, Loader2, X, ChevronDown, ChevronRight, Download } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Paperclip, Send, FileText, BookOpen, Target, Loader2, X, ChevronDown, ChevronRight, Download, Save, Check } from 'lucide-react';
+import { saveArtifact, type IssueSpottingData } from '@/lib/db';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -21,6 +23,7 @@ const LEVELS = ['1L', '2L', '3L', 'Bar', 'Advanced'] as const;
 const SAMPLE_FACT_PATTERN = `Alice speeds through a red light while texting and hits Bob, who is jaywalking outside a bar at night. Bob had been drinking. The city's traffic camera was malfunctioning. Bob suffers a broken leg; his employer fires him for missing work.`;
 
 export default function IssueSpottingPage() {
+  const searchParams = useSearchParams();
   // State
   const [factPattern, setFactPattern] = useState<FactPattern | null>(null);
   const [pastedText, setPastedText] = useState('');
@@ -35,9 +38,30 @@ export default function IssueSpottingPage() {
   const [issueMap, setIssueMap] = useState<IssueNode[] | null>(null);
   const [showEvalModal, setShowEvalModal] = useState(false);
   const [sessionStarted, setSessionStarted] = useState(false);
-  
+  const [isSaved, setIsSaved] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load saved artifact if coming from saved-artifacts page
+  useEffect(() => {
+    const loadId = searchParams?.get('load');
+    if (loadId) {
+      const savedData = sessionStorage.getItem(`artifact-${loadId}`);
+      if (savedData) {
+        try {
+          const artifact = JSON.parse(savedData);
+          const data = artifact.data as IssueSpottingData;
+          setFactPattern({ sourceType: 'paste', text: data.factPattern });
+          setConfig({ subjects: ['Torts'], level: '1L', focus: data.topic || '' });
+          setIsSaved(true);
+          sessionStorage.removeItem(`artifact-${loadId}`);
+        } catch (err) {
+          console.error('Failed to load artifact:', err);
+        }
+      }
+    }
+  }, [searchParams]);
 
   // Handle file upload
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -267,6 +291,41 @@ export default function IssueSpottingPage() {
     a.click();
   };
 
+  // Save session function
+  const handleSave = async () => {
+    if (!factPattern || messages.length === 0) return;
+
+    try {
+      const title = `Issue Spotting - ${config.subjects.join(', ')} (${config.level})`;
+      const summary = `${factPattern.text.slice(0, 100)}... - ${messages.length} message${messages.length !== 1 ? 's' : ''}`;
+
+      // Extract key issues from messages
+      const issues = messages
+        .filter(m => m.role === 'assistant')
+        .map(m => ({
+          issue: 'Issue analysis',
+          rule: '',
+          analysis: m.content.slice(0, 200),
+        }));
+
+      await saveArtifact({
+        type: 'issue-spotting',
+        title,
+        summary,
+        data: {
+          factPattern: factPattern.text,
+          issues,
+          topic: config.subjects.join(', '),
+        } as IssueSpottingData,
+      });
+
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save issue spotting session:', err);
+    }
+  };
+
   return (
     <div className="mx-auto flex h-full max-w-7xl flex-col p-4 sm:p-6">
       <div className="mb-6">
@@ -442,6 +501,25 @@ export default function IssueSpottingPage() {
                   Issue-Spotting Assistant
                 </CardTitle>
                 <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={isSaved || messages.length === 0}
+                    variant="secondary"
+                    className="gap-2"
+                  >
+                    {isSaved ? (
+                      <>
+                        <Check className="size-4" />
+                        Saved
+                      </>
+                    ) : (
+                      <>
+                        <Save className="size-4" />
+                        Save
+                      </>
+                    )}
+                  </Button>
                   <Button variant="outline" size="sm" onClick={() => setShowEvalModal(true)}>
                     Evaluate Answer
                   </Button>

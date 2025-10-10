@@ -12,7 +12,13 @@
       "Bash(lsof:*)",
       "Bash(xargs kill:*)",
       "WebFetch(domain:echo.merit.systems)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(cd:*)",
+      "Bash(cat:*)",
+      "Bash(npm run build:*)",
+      "WebFetch(domain:www.merit.systems)",
+      "WebSearch",
+      "WebFetch(domain:rxdb.info)"
     ],
     "deny": [],
     "ask": []

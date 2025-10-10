@@ -1,9 +1,11 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
-import { CopyIcon, MessageSquare, Paperclip, X } from 'lucide-react';
+import { CopyIcon, MessageSquare, Paperclip, X, Save, Check } from 'lucide-react';
 import { Fragment, useRef, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { saveArtifact, type ChatData } from '@/lib/db';
+import { Button } from '@/components/ui/button';
 import { Action, Actions } from '@/components/ai-elements/actions';
 import {
   Conversation,
@@ -99,9 +101,30 @@ const ChatBotDemo = () => {
   const [input, setInput] = useState('');
   const [model, setModel] = useState<string>(models[0].value);
   const [files, setFiles] = useState<FileList | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasAutoSent = useRef(false);
   const { messages, sendMessage, status } = useChat();
+
+  // Load saved chat if coming from saved-artifacts page
+  useEffect(() => {
+    const loadId = searchParams.get('load');
+    if (loadId) {
+      const savedData = sessionStorage.getItem(`artifact-${loadId}`);
+      if (savedData) {
+        try {
+          const artifact = JSON.parse(savedData);
+          const data = artifact.data as ChatData;
+          // Note: The useChat hook doesn't expose a way to restore messages
+          // This would need to be implemented with custom state management
+          // For now, we'll just clear the session storage
+          sessionStorage.removeItem(`artifact-${loadId}`);
+        } catch (err) {
+          console.error('Failed to load artifact:', err);
+        }
+      }
+    }
+  }, [searchParams]);
 
   // Check for message in URL params and auto-send it
   useEffect(() => {
@@ -189,9 +212,70 @@ const ChatBotDemo = () => {
     );
   };
 
+  const handleSave = async () => {
+    if (messages.length === 0) return;
+
+    try {
+      // Get first user message for title
+      const firstUserMessage = messages.find(m => m.role === 'user');
+      const title = firstUserMessage
+        ? firstUserMessage.parts.find(p => p.type === 'text')?.text.slice(0, 60) || 'Chat Session'
+        : 'Chat Session';
+
+      const summary = `${messages.length} message${messages.length !== 1 ? 's' : ''} - Last updated ${new Date().toLocaleString()}`;
+
+      // Convert messages to simpler format for storage
+      const chatMessages = messages.map(msg => ({
+        role: msg.role as 'user' | 'assistant',
+        content: msg.parts
+          .filter(p => p.type === 'text')
+          .map(p => p.text)
+          .join('\n'),
+        timestamp: new Date(),
+      }));
+
+      await saveArtifact({
+        type: 'chat',
+        title,
+        summary,
+        data: {
+          messages: chatMessages,
+        } as ChatData,
+      });
+
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save chat:', err);
+    }
+  };
+
   return (
     <div className="mx-auto flex h-full max-w-4xl flex-col p-6">
       <div className="flex h-full min-h-0 flex-col">
+        {messages.length > 0 && (
+          <div className="mb-4 flex justify-end">
+            <Button
+              onClick={handleSave}
+              disabled={isSaved}
+              variant="secondary"
+              className="gap-2"
+              size="sm"
+            >
+              {isSaved ? (
+                <>
+                  <Check className="size-4" />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Save className="size-4" />
+                  Save Chat
+                </>
+              )}
+            </Button>
+          </div>
+        )}
         <Conversation className="relative min-h-0 w-full flex-1 overflow-hidden">
           <ConversationContent>
             {messages.length === 0 ? (

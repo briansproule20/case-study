@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { FileText, Upload, Loader2, FileSearch, Scale, BookOpen, ClipboardList, ListOrdered, AlertCircle } from 'lucide-react';
+import { FileText, Upload, Loader2, FileSearch, Scale, BookOpen, ClipboardList, ListOrdered, AlertCircle, Save, Check } from 'lucide-react';
 import { prepareFilesForUpload } from '@/lib/upload-helper';
+import { saveArtifact, type DocumentData } from '@/lib/db';
+import { useSearchParams } from 'next/navigation';
 
 const analysisOptions = [
   {
@@ -47,6 +49,7 @@ const analysisOptions = [
 ];
 
 export default function DocumentAnalysisPage() {
+  const searchParams = useSearchParams();
   const [file, setFile] = useState<File | null>(null);
   const [extractedText, setExtractedText] = useState<string>('');
   const [isExtracting, setIsExtracting] = useState(false);
@@ -54,6 +57,30 @@ export default function DocumentAnalysisPage() {
   const [analysisResult, setAnalysisResult] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [isSaved, setIsSaved] = useState(false);
+
+  // Load saved artifact if coming from saved-artifacts page
+  useEffect(() => {
+    const loadId = searchParams?.get('load');
+    if (loadId) {
+      const savedData = sessionStorage.getItem(`artifact-${loadId}`);
+      if (savedData) {
+        try {
+          const artifact = JSON.parse(savedData);
+          const data = artifact.data as DocumentData;
+          setAnalysisResult(data.analysis);
+          setExtractedText(data.extractedText || '');
+          // Create a fake file reference for display
+          const fileName = data.fileName;
+          setFile(new File([], fileName, { type: 'application/pdf' }));
+          setIsSaved(true);
+          sessionStorage.removeItem(`artifact-${loadId}`);
+        } catch (err) {
+          console.error('Failed to load artifact:', err);
+        }
+      }
+    }
+  }, [searchParams]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -101,6 +128,7 @@ export default function DocumentAnalysisPage() {
     setIsAnalyzing(true);
     setError('');
     setAnalysisResult('');
+    setIsSaved(false);
 
     try {
       const response = await fetch('/api/analyze-document', {
@@ -126,6 +154,32 @@ export default function DocumentAnalysisPage() {
     } finally {
       setIsAnalyzing(false);
       setSelectedOption(null);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!analysisResult || !file) return;
+
+    try {
+      const title = `${file.name} - Analysis`;
+      const summary = `Document analysis for ${file.name} (${(analysisResult.length / 100).toFixed(0)} words)`;
+
+      await saveArtifact({
+        type: 'document',
+        title,
+        summary,
+        data: {
+          analysis: analysisResult,
+          fileName: file.name,
+          extractedText,
+        } as DocumentData,
+      });
+
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save document analysis:', err);
+      setError('Failed to save analysis');
     }
   };
 
@@ -238,10 +292,33 @@ export default function DocumentAnalysisPage() {
         {analysisResult && (
           <Card className="flex-1">
             <CardHeader>
-              <CardTitle>Analysis Results</CardTitle>
-              <CardDescription>
-                Analysis of your document
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Analysis Results</CardTitle>
+                  <CardDescription>
+                    Analysis of your document
+                  </CardDescription>
+                </div>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaved}
+                  variant="secondary"
+                  className="gap-2"
+                  size="sm"
+                >
+                  {isSaved ? (
+                    <>
+                      <Check className="size-4" />
+                      Saved
+                    </>
+                  ) : (
+                    <>
+                      <Save className="size-4" />
+                      Save Analysis
+                    </>
+                  )}
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm max-w-none dark:prose-invert">

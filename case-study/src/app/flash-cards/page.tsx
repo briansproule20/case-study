@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Paperclip, X, BookOpen, Loader2, FileText, Image, ChevronLeft, ChevronRight, RotateCw } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Paperclip, X, BookOpen, Loader2, FileText, Image, ChevronLeft, ChevronRight, RotateCw, Save, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { saveArtifact, type FlashcardData } from '@/lib/db';
+import { useSearchParams } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +37,7 @@ const acceptedFileTypes = [
 const FLASHCARD_COUNTS = [5, 10, 15, 20] as const;
 
 export default function FlashCardsPage() {
+  const searchParams = useSearchParams();
   const [files, setFiles] = useState<FileList | null>(null);
   const [instructions, setInstructions] = useState('');
   const [flashcardCount, setFlashcardCount] = useState<number>(10);
@@ -43,7 +46,30 @@ export default function FlashCardsPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [fileNames, setFileNames] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved artifact if coming from saved-artifacts page
+  useEffect(() => {
+    const loadId = searchParams?.get('load');
+    if (loadId) {
+      const savedData = sessionStorage.getItem(`artifact-${loadId}`);
+      if (savedData) {
+        try {
+          const artifact = JSON.parse(savedData);
+          const data = artifact.data as FlashcardData;
+          setDeck({ flashcards: data.flashcards });
+          setInstructions(data.instructions || '');
+          setFileNames(data.fileNames || []);
+          setIsSaved(true);
+          sessionStorage.removeItem(`artifact-${loadId}`);
+        } catch (err) {
+          console.error('Failed to load artifact:', err);
+        }
+      }
+    }
+  }, [searchParams]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -72,8 +98,13 @@ export default function FlashCardsPage() {
 
     setIsGenerating(true);
     setError(null);
+    setIsSaved(false);
 
     try {
+      // Store file names for saving later
+      const names = Array.from(files).map(f => f.name);
+      setFileNames(names);
+
       // Prepare files for upload (handles blob storage automatically for large files)
       const formData = await prepareFilesForUpload(files);
       formData.append('instructions', instructions);
@@ -97,6 +128,35 @@ export default function FlashCardsPage() {
       setError(err instanceof Error ? err.message : 'Failed to generate flashcards');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!deck) return;
+
+    try {
+      const title = fileNames.length > 0
+        ? `${fileNames[0]} - ${deck.flashcards.length} Cards`
+        : `Flashcard Deck - ${deck.flashcards.length} Cards`;
+
+      const summary = `${deck.flashcards.length} flashcard${deck.flashcards.length !== 1 ? 's' : ''} covering ${[...new Set(deck.flashcards.map(c => c.category))].join(', ')}`;
+
+      await saveArtifact({
+        type: 'flashcard',
+        title,
+        summary,
+        data: {
+          flashcards: deck.flashcards,
+          instructions,
+          fileNames,
+        } as FlashcardData,
+      });
+
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save flashcard deck:', err);
+      setError('Failed to save flashcard deck');
     }
   };
 
@@ -308,9 +368,29 @@ export default function FlashCardsPage() {
                       {deck.flashcards.length} flashcards generated • Card {currentCardIndex + 1} of {deck.flashcards.length}
                     </CardDescription>
                   </div>
-                  <Button variant="outline" onClick={resetDeck}>
-                    New Deck
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleSave}
+                      disabled={isSaved}
+                      variant="secondary"
+                      className="gap-2"
+                    >
+                      {isSaved ? (
+                        <>
+                          <Check className="size-4" />
+                          Saved
+                        </>
+                      ) : (
+                        <>
+                          <Save className="size-4" />
+                          Save Deck
+                        </>
+                      )}
+                    </Button>
+                    <Button variant="outline" onClick={resetDeck}>
+                      New Deck
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">

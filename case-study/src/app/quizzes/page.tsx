@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Paperclip, X, Brain, Loader2, BookOpen, FileText, Image } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Paperclip, X, Brain, Loader2, BookOpen, FileText, Image, Save, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { saveArtifact, type QuizData } from '@/lib/db';
+import { useSearchParams } from 'next/navigation';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +37,7 @@ const acceptedFileTypes = [
 const QUESTION_COUNTS = [5, 10, 15, 20] as const;
 
 export default function QuizzesPage() {
+  const searchParams = useSearchParams();
   const [files, setFiles] = useState<FileList | null>(null);
   const [instructions, setInstructions] = useState('');
   const [questionCount, setQuestionCount] = useState<number>(10);
@@ -43,7 +46,34 @@ export default function QuizzesPage() {
   const [error, setError] = useState<string | null>(null);
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: number }>({});
   const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set());
+  const [isSaved, setIsSaved] = useState(false);
+  const [fileNames, setFileNames] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load saved artifact if coming from saved-artifacts page
+  useEffect(() => {
+    const loadId = searchParams?.get('load');
+    if (loadId) {
+      const savedData = sessionStorage.getItem(`artifact-${loadId}`);
+      if (savedData) {
+        try {
+          const artifact = JSON.parse(savedData);
+          const data = artifact.data as QuizData;
+          setQuiz({ questions: data.questions });
+          setInstructions(data.instructions || '');
+          setFileNames(data.fileNames || []);
+          if (data.userAnswers) {
+            setUserAnswers(data.userAnswers);
+            setAnsweredQuestions(new Set(Object.keys(data.userAnswers).map(Number)));
+          }
+          setIsSaved(true);
+          sessionStorage.removeItem(`artifact-${loadId}`);
+        } catch (err) {
+          console.error('Failed to load artifact:', err);
+        }
+      }
+    }
+  }, [searchParams]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -72,8 +102,13 @@ export default function QuizzesPage() {
 
     setIsGenerating(true);
     setError(null);
+    setIsSaved(false);
 
     try {
+      // Store file names for saving later
+      const names = Array.from(files).map(f => f.name);
+      setFileNames(names);
+
       // Prepare files for upload (handles blob storage automatically for large files)
       const formData = await prepareFilesForUpload(files);
       formData.append('instructions', instructions);
@@ -95,6 +130,41 @@ export default function QuizzesPage() {
       setError(err instanceof Error ? err.message : 'Failed to generate quiz');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!quiz) return;
+
+    try {
+      const score = calculateScore();
+      const title = fileNames.length > 0
+        ? `${fileNames[0]} - ${quiz.questions.length} Questions`
+        : `Quiz - ${quiz.questions.length} Questions`;
+
+      const summary = allQuestionsAnswered
+        ? `Completed with ${score.correct}/${score.total} correct (${Math.round((score.correct / score.total) * 100)}%)`
+        : `${quiz.questions.length} question quiz, ${answeredQuestions.size} answered`;
+
+      await saveArtifact({
+        type: 'quiz',
+        title,
+        summary,
+        data: {
+          questions: quiz.questions,
+          userAnswers,
+          score: score.correct,
+          completed: allQuestionsAnswered,
+          instructions,
+          fileNames,
+        } as QuizData,
+      });
+
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save quiz:', err);
+      setError('Failed to save quiz');
     }
   };
 
@@ -326,9 +396,29 @@ export default function QuizzesPage() {
                       </span>
                     </div>
                   </div>
-                  <Button variant="outline" onClick={resetQuiz} className="sm:self-start">
-                    New Quiz
-                  </Button>
+                  <div className="flex gap-2 sm:self-start">
+                    <Button
+                      onClick={handleSave}
+                      disabled={isSaved}
+                      variant="secondary"
+                      className="gap-2"
+                    >
+                      {isSaved ? (
+                        <>
+                          <Check className="size-4" />
+                          Saved
+                        </>
+                      ) : (
+                        <>
+                          <Save className="size-4" />
+                          Save Quiz
+                        </>
+                      )}
+                    </Button>
+                    <Button variant="outline" onClick={resetQuiz}>
+                      New Quiz
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Final Score - Shows when all questions answered */}

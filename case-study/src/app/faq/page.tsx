@@ -492,6 +492,42 @@ export default function FAQPage() {
                     </div>
                   </AccordionContent>
                 </AccordionItem>
+
+                <AccordionItem value="local-storage">
+                  <AccordionTrigger className="text-left">
+                    How does local storage work for saved artifacts?
+                  </AccordionTrigger>
+                  <AccordionContent className="text-muted-foreground leading-relaxed">
+                    Case Study uses <strong>IndexedDB</strong> (a browser-based database) to store your saved flashcards, quizzes,
+                    document analyses, and other artifacts locally on your device. This means your saved content is stored directly
+                    in your browser and stays on your device for privacy and offline access.
+                    <div className="mt-3">
+                      <p className="font-semibold text-sm mb-2">Key Features:</p>
+                      <ul className="space-y-1.5 ml-4 list-disc text-sm">
+                        <li><strong>Privacy-First:</strong> All saved artifacts stay on your device—never uploaded to our servers</li>
+                        <li><strong>Large Capacity:</strong> Chrome allows ~60GB of storage (80% of free disk space)</li>
+                        <li><strong>Works Offline:</strong> Access saved flashcards, quizzes, and analyses without internet</li>
+                        <li><strong>Persistent:</strong> Data persists until you clear browser data or delete artifacts</li>
+                        <li><strong>Per-Browser:</strong> Saved content is specific to each browser (Chrome, Safari, etc.)</li>
+                        <li><strong>Instant Access:</strong> No loading times—content loads immediately from local storage</li>
+                      </ul>
+                    </div>
+                    <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 mb-1">⚠️ Important Notes:</p>
+                      <ul className="space-y-1 text-sm text-yellow-800 dark:text-yellow-200">
+                        <li>• Clearing browser data will delete all saved artifacts</li>
+                        <li>• Saved content doesn't sync between devices or browsers</li>
+                        <li>• To keep artifacts long-term, avoid clearing browsing data</li>
+                        <li>• Saved chats are view-only and can't be continued</li>
+                      </ul>
+                    </div>
+                    <p className="mt-3 text-sm">
+                      <strong>Storage Capacity Example:</strong> You could save hundreds of quizzes, thousands of flashcards,
+                      and dozens of document analyses before approaching storage limits. A typical quiz takes ~5-10 KB,
+                      and a flashcard deck takes ~5-15 KB.
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
               </Accordion>
             </CardContent>
           </Card>
