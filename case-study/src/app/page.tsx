@@ -110,17 +110,17 @@ export default function Home() {
                   Flashcards
                 </Button>
               </Link>
+              <Link href="/document-analysis">
+                <Button size="lg" variant="secondary" className="gap-2">
+                  <FileSearch className="size-4" />
+                  Document Analysis
+                </Button>
+              </Link>
               <Link href="/issue-spotting">
                 <Button size="lg" className="group gap-2">
                   <Target className="size-4" />
                   Issue Spotting
                   <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </Link>
-              <Link href="/document-analysis">
-                <Button size="lg" variant="secondary" className="gap-2">
-                  <FileSearch className="size-4" />
-                  Document Analysis
                 </Button>
               </Link>
             </div>
