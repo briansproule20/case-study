@@ -76,8 +76,7 @@ export default function Home() {
           </h1>
 
           <p className="mx-auto mb-8 max-w-2xl text-balance text-base text-muted-foreground sm:mb-10 sm:text-lg md:text-xl">
-            Transform how you study law. Upload your materials, generate practice questions,
-            and master case law with AI-powered flashcards and issue spotting exercises.
+            Upload your materials, generate practice questions, and master case law with flashcards, quizzes, issue spotting exercises, and document analysis.
           </p>
 
           <div className="flex flex-col items-center justify-center gap-3 sm:gap-4">
