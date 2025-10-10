@@ -39,7 +39,7 @@ export default function QuizzesPage() {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: number }>({});
-  const [showResults, setShowResults] = useState(false);
+  const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,18 +100,26 @@ export default function QuizzesPage() {
     setInstructions('');
     setError(null);
     setUserAnswers({});
-    setShowResults(false);
+    setAnsweredQuestions(new Set());
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
   const handleAnswerSelect = (questionId: number, optionIndex: number) => {
+    // Don't allow changing answer after it's been submitted
+    if (answeredQuestions.has(questionId)) return;
+
     setUserAnswers(prev => ({
       ...prev,
       [questionId]: optionIndex
     }));
+
+    // Mark question as answered (shows immediate feedback)
+    setAnsweredQuestions(prev => new Set(prev).add(questionId));
   };
+
+  const allQuestionsAnswered = quiz ? answeredQuestions.size === quiz.questions.length : false;
 
   const calculateScore = () => {
     if (!quiz) return { correct: 0, total: 0 };
@@ -266,42 +274,53 @@ export default function QuizzesPage() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Quiz Results */}
+            {/* Quiz Header with Progress */}
             <Card>
               <CardHeader>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
+                  <div className="flex-1">
                     <CardTitle className="flex items-center gap-2">
                       <Brain className="size-5" />
                       Your Quiz
                     </CardTitle>
                     <CardDescription>
-                      Answer all 10 questions then submit to see your score
+                      Select an answer to see immediate feedback and learn as you go
                     </CardDescription>
+                    {/* Progress Indicator */}
+                    <div className="mt-3 flex items-center gap-3">
+                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary transition-all duration-300"
+                          style={{ width: `${(answeredQuestions.size / quiz.questions.length) * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                        {answeredQuestions.size} / {quiz.questions.length}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    {!showResults && Object.keys(userAnswers).length === quiz.questions.length && (
-                      <Button onClick={() => setShowResults(true)} className="gap-2">
-                        Submit Quiz
-                      </Button>
-                    )}
-                    <Button variant="outline" onClick={resetQuiz}>
-                      New Quiz
-                    </Button>
-                  </div>
+                  <Button variant="outline" onClick={resetQuiz} className="sm:self-start">
+                    New Quiz
+                  </Button>
                 </div>
-                {showResults && (
-                  <div className="mt-4 rounded-lg border border-primary bg-primary/5 p-4">
+
+                {/* Final Score - Shows when all questions answered */}
+                {allQuestionsAnswered && (
+                  <div className="mt-4 rounded-lg border-2 border-primary bg-primary/5 p-4">
                     <div className="flex items-center gap-3">
                       <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
                         <Brain className="size-6 text-primary" />
                       </div>
                       <div>
                         <p className="font-semibold text-lg">
-                          Score: {calculateScore().correct} / {calculateScore().total}
+                          Final Score: {calculateScore().correct} / {calculateScore().total}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           {Math.round((calculateScore().correct / calculateScore().total) * 100)}% correct
+                          {calculateScore().correct === calculateScore().total && " - Perfect score! 🎉"}
+                          {calculateScore().correct >= calculateScore().total * 0.8 && calculateScore().correct < calculateScore().total && " - Great job!"}
+                          {calculateScore().correct >= calculateScore().total * 0.6 && calculateScore().correct < calculateScore().total * 0.8 && " - Good effort!"}
+                          {calculateScore().correct < calculateScore().total * 0.6 && " - Keep studying!"}
                         </p>
                       </div>
                     </div>
@@ -312,18 +331,17 @@ export default function QuizzesPage() {
                 <div className="space-y-6">
                   {quiz.questions.map((question, index) => {
                     const userAnswer = userAnswers[question.id];
-                    const isAnswered = userAnswer !== undefined;
+                    const isAnswered = answeredQuestions.has(question.id);
                     const isCorrect = userAnswer === question.correctAnswer;
-                    
+
                     return (
-                      <Card 
-                        key={question.id} 
+                      <Card
+                        key={question.id}
                         className={cn(
-                          "border-l-4 transition-colors",
+                          "border-l-4 transition-all duration-300",
                           !isAnswered && "border-l-muted",
-                          isAnswered && !showResults && "border-l-primary",
-                          showResults && isCorrect && "border-l-green-500",
-                          showResults && !isCorrect && "border-l-red-500"
+                          isAnswered && isCorrect && "border-l-green-500 shadow-sm",
+                          isAnswered && !isCorrect && "border-l-red-500 shadow-sm"
                         )}
                       >
                         <CardHeader className="pb-3">
@@ -331,9 +349,15 @@ export default function QuizzesPage() {
                             <Badge variant="outline" className="mb-2">
                               Question {index + 1}
                             </Badge>
-                            {showResults && (
-                              <Badge variant={isCorrect ? "default" : "destructive"} className="bg-opacity-10">
-                                {isCorrect ? "Correct" : "Incorrect"}
+                            {isAnswered && (
+                              <Badge
+                                variant={isCorrect ? "default" : "destructive"}
+                                className={cn(
+                                  "transition-all",
+                                  isCorrect ? "bg-green-500" : "bg-red-500"
+                                )}
+                              >
+                                {isCorrect ? "✓ Correct" : "✗ Incorrect"}
                               </Badge>
                             )}
                           </div>
@@ -346,49 +370,55 @@ export default function QuizzesPage() {
                             {question.options.map((option, optionIndex) => {
                               const isSelected = userAnswer === optionIndex;
                               const isCorrectAnswer = optionIndex === question.correctAnswer;
-                              
+
                               return (
                                 <div
                                   key={optionIndex}
-                                  onClick={() => !showResults && handleAnswerSelect(question.id, optionIndex)}
+                                  onClick={() => handleAnswerSelect(question.id, optionIndex)}
                                   className={cn(
-                                    "flex items-center space-x-3 rounded-lg border p-3 transition-colors",
-                                    !showResults && "cursor-pointer hover:bg-muted/50",
-                                    showResults && "cursor-default",
-                                    isSelected && !showResults && "border-primary bg-primary/5",
-                                    showResults && isSelected && isCorrect && "border-green-500 bg-green-50",
-                                    showResults && isSelected && !isCorrect && "border-red-500 bg-red-50",
-                                    showResults && !isSelected && isCorrectAnswer && "border-green-500 bg-green-50"
+                                    "flex items-center space-x-3 rounded-lg border p-3 transition-all duration-200",
+                                    !isAnswered && "cursor-pointer hover:bg-muted/50 hover:border-primary/50",
+                                    isAnswered && "cursor-default",
+                                    isSelected && !isAnswered && "border-primary bg-primary/5",
+                                    isAnswered && isSelected && isCorrect && "border-green-500 bg-green-50 dark:bg-green-950/20",
+                                    isAnswered && isSelected && !isCorrect && "border-red-500 bg-red-50 dark:bg-red-950/20",
+                                    isAnswered && !isSelected && isCorrectAnswer && "border-green-500 bg-green-50 dark:bg-green-950/20"
                                   )}
                                 >
                                   <div className={cn(
-                                    "flex h-5 w-5 items-center justify-center rounded-full border-2",
-                                    isSelected && !showResults && "border-primary",
-                                    !isSelected && !showResults && "border-muted-foreground",
-                                    showResults && isCorrectAnswer && "border-green-500",
-                                    showResults && isSelected && !isCorrect && "border-red-500"
+                                    "flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all",
+                                    isSelected && !isAnswered && "border-primary",
+                                    !isSelected && !isAnswered && "border-muted-foreground",
+                                    isAnswered && isCorrectAnswer && "border-green-500 bg-green-500",
+                                    isAnswered && isSelected && !isCorrect && "border-red-500 bg-red-500"
                                   )}>
-                                    <div className={cn(
-                                      "h-2.5 w-2.5 rounded-full transition-all",
-                                      isSelected && !showResults && "bg-primary",
-                                      showResults && isCorrectAnswer && "bg-green-500",
-                                      showResults && isSelected && !isCorrect && "bg-red-500"
-                                    )} />
+                                    {isAnswered && isCorrectAnswer && (
+                                      <span className="text-white text-xs">✓</span>
+                                    )}
+                                    {isAnswered && isSelected && !isCorrect && (
+                                      <span className="text-white text-xs">✗</span>
+                                    )}
+                                    {!isAnswered && isSelected && (
+                                      <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+                                    )}
                                   </div>
                                   <span className="flex-1">{option}</span>
                                 </div>
                               );
                             })}
             </div>
-                          {showResults && (
+                          {/* Show explanation immediately after answering */}
+                          {isAnswered && (
                             <div className={cn(
-                              "rounded-lg p-3 border",
-                              isCorrect ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-200"
+                              "rounded-lg p-4 border-2 animate-in slide-in-from-top-2 duration-300",
+                              isCorrect
+                                ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800"
+                                : "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800"
                             )}>
-                              <p className="text-sm font-medium mb-1">
-                                {isCorrect ? "Great job! " : ""}Explanation:
+                              <p className="text-sm font-semibold mb-2">
+                                {isCorrect ? "🎉 Correct!" : "📚 Learn from this:"}
                               </p>
-                              <p className="text-sm">{question.explanation}</p>
+                              <p className="text-sm leading-relaxed">{question.explanation}</p>
                             </div>
                           )}
                         </CardContent>
