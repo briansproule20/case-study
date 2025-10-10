@@ -164,7 +164,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t px-6 py-8">
         <div className="mx-auto max-w-6xl text-center text-muted-foreground text-sm">
-          <p>Built with Next.js, shadcn/ui, Merit System's Echo, Cursor, and Claude Code</p>
+          <p>Built with Next.js, Vercel, shadcn/ui, Merit System's Echo, Cursor, and Claude Code</p>
         </div>
       </footer>
     </div>

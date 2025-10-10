@@ -8,7 +8,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Menu, Home, MessageSquare, BookOpen, HelpCircle, Layers, Target, FileText } from 'lucide-react';
+import { Menu, Home, MessageSquare, BookOpen, HelpCircle, Layers, Target, FileText, Info } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -50,6 +50,11 @@ export function MobileNav() {
       title: 'Document Analysis',
       href: '/document-analysis',
       icon: FileText,
+    },
+    {
+      title: 'FAQ',
+      href: '/faq',
+      icon: Info,
     },
   ];
 
