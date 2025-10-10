@@ -1,12 +1,14 @@
 // Helper for handling file uploads with automatic routing based on size
 // Transparent: tries direct upload first, falls back to blob if needed
 
+import { upload } from '@vercel/blob/client';
+
 const DIRECT_UPLOAD_LIMIT = 4 * 1024 * 1024; // 4MB - Vercel limit
 
 /**
  * Smart file upload that automatically handles large files via blob storage
  * This is a drop-in replacement for direct FormData uploads
- * 
+ *
  * Usage: Just pass files to this and append the result to your FormData
  */
 export async function prepareFilesForUpload(files: FileList | File[]): Promise<FormData> {
@@ -16,34 +18,44 @@ export async function prepareFilesForUpload(files: FileList | File[]): Promise<F
   for (let i = 0; i < fileArray.length; i++) {
     const file = fileArray[i];
 
-    // For large files, use blob storage (browser only, not SSR)
+    // For large files, use client-side blob upload (browser only, not SSR)
     if (file.size > DIRECT_UPLOAD_LIMIT && typeof window !== 'undefined') {
 
       try {
-        // Upload to blob storage
-        const blobFormData = new FormData();
-        blobFormData.append('file', file);
+        console.log(`[Upload] Starting blob upload: ${file.name} (${formatFileSize(file.size)})`);
 
-        const response = await fetch('/api/blob-upload', {
-          method: 'POST',
-          body: blobFormData
+        // Client-side upload directly to Vercel Blob
+        // This avoids the 413 error by never sending the file through our API
+        const blob = await upload(file.name, file, {
+          access: 'public',
+          handleUploadUrl: '/api/blob-upload',
         });
 
-        if (!response.ok) {
-          throw new Error(`Blob upload failed: ${response.statusText}`);
-        }
-
-        const { url } = await response.json();
+        console.log(`[Upload] Blob upload successful: ${blob.url}`);
 
         // Add blob URL instead of file
-        formData.append(`blob-${i}`, url);
+        formData.append(`blob-${i}`, blob.url);
         formData.append(`blob-${i}-filename`, file.name);
         formData.append(`blob-${i}-type`, file.type);
       } catch (error) {
-        console.error('Blob upload failed:', error);
-        // Throw error for large files instead of falling back to direct upload
-        // This prevents 413 errors on the main API route
-        throw new Error(`File "${file.name}" is too large (${formatFileSize(file.size)}). Failed to upload to blob storage.`);
+        console.error('[Upload] Blob upload failed:', error);
+
+        // Provide detailed error message
+        let errorMessage = 'Unknown error';
+        if (error instanceof Error) {
+          errorMessage = error.message;
+        } else if (typeof error === 'object' && error !== null) {
+          errorMessage = JSON.stringify(error);
+        }
+
+        throw new Error(
+          `Failed to upload "${file.name}" (${formatFileSize(file.size)}) to blob storage.\n` +
+          `Error: ${errorMessage}\n\n` +
+          `This usually means:\n` +
+          `1. The BLOB_READ_WRITE_TOKEN environment variable is not set in Vercel\n` +
+          `2. You need to redeploy after code changes\n` +
+          `3. There's a network issue`
+        );
       }
     } else {
       // Direct upload for small files

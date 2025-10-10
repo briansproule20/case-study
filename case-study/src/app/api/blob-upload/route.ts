@@ -1,50 +1,45 @@
-import { put } from '@vercel/blob';
+import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 60;
 
-// Increase body size limit for blob uploads (50MB max)
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb',
-    },
-  },
-};
-
-// This route handles large file uploads via Vercel Blob
-export async function POST(request: NextRequest) {
+// This route provides upload tokens for client-side uploads to Vercel Blob
+// This avoids the 413 error by uploading directly from the client to blob storage
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
+    const body = (await request.json()) as HandleUploadBody;
 
-    if (!file) {
-      return NextResponse.json(
-        { error: 'No file provided' },
-        { status: 400 }
-      );
-    }
+    const jsonResponse = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (pathname) => {
+        // You can add validation here if needed
+        // For example, check file extension, size limits, etc.
+        console.log(`Generating upload token for: ${pathname}`);
 
-    console.log(`Uploading file to blob: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
-
-    // Upload to Vercel Blob
-    const blob = await put(file.name, file, {
-      access: 'public',
-      addRandomSuffix: true,
+        return {
+          allowedContentTypes: [
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'text/plain'
+          ],
+          tokenPayload: JSON.stringify({
+            uploadedAt: new Date().toISOString(),
+          }),
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        console.log('Upload completed:', blob.pathname);
+        // You can add post-upload logic here if needed
+      },
     });
 
-    console.log(`File uploaded successfully: ${blob.url}`);
-
-    return NextResponse.json({
-      url: blob.url,
-      filename: file.name,
-      size: file.size,
-      type: file.type
-    });
+    return NextResponse.json(jsonResponse);
   } catch (error) {
-    console.error('Blob upload error:', error);
+    console.error('Blob upload token error:', error);
     return NextResponse.json(
-      { error: 'Failed to upload file to blob storage' },
+      { error: 'Failed to generate upload token' },
       { status: 500 }
     );
   }
